@@ -1,0 +1,31 @@
+Zmiana Display =
+VAR _Value = [Zmiana]
+RETURN
+    SWITCH(
+        TRUE(),
+        _Value > 0,
+            "▲ " & FORMAT(_Value, "0.0%"),
+        _Value < 0,
+            "▼ " & FORMAT(ABS(_Value), "0.0%"),
+        "● 0,0%"
+    )
+
+
+Status Zmiany =
+SWITCH(
+    TRUE(),
+    [Zmiana] > 0, "🟢  WZROST",
+    [Zmiana] < 0, "🔴  SPADEK",
+    "⚪  BEZ ZMIANY"
+)
+
+
+Zmiana Display =
+VAR _Change = [Zmiana]
+RETURN
+    SWITCH(
+        TRUE(),
+        _Change > 0, "▲ " & FORMAT(_Change, "#,##0"),
+        _Change < 0, "▼ " & FORMAT(ABS(_Change), "#,##0"),
+        "● 0"
+    )
