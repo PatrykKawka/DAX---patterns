@@ -1,0 +1,65 @@
+Na wybranym polu należy wybrać --> Elementy komórek --> Adres URL sieci WEB i wybrac miarę. 
+Jesli chcemy mieć kolumnę z ikoną koperty to dodajemy miarę jako nową kolumne --> Narzędzia miar na górnym pasku --> Kategoria danych --> Web URL.
+Przechodzimy do ustawień tabeli --> Ikona adresu URL --> włączamy wartości
+
+
+Email Performance Notice (Simple) = 
+VAR _EmailAddress =  SELECTEDVALUE ( DimSalesRep[Email] )
+VAR _Subject =       "?subject=Monthly Sales Update"
+VAR _NL =            "%0D%0A%0D%0A"
+VAR _Sales =         SUM ( FactSalesPerformance[ActualSales] )
+VAR _Body =
+    "&body=Hello," & _NL &
+    "Your Monthly Sales totaled to $" & FORMAT ( _Sales, "#,0" ) & "."
+RETURN
+    "mailto:" & _EmailAddress & _Subject & _Body
+
+
+Email Performance Notice = 
+VAR _RepEmail =     SELECTEDVALUE ( DimSalesRep[Email] )
+VAR _RepName =      SELECTEDVALUE ( DimSalesRep[FullName] )
+VAR _ManagerEmail = SELECTEDVALUE ( DimSalesRep[ManagerEmail] )
+VAR _ManagerName =  SELECTEDVALUE ( DimSalesRep[ManagerName] )
+VAR _Region =       SELECTEDVALUE ( DimSalesRep[Region] )
+VAR _MonthYear =    SELECTEDVALUE ( DimDate[MonthYear] )
+VAR _ActualSales =  SUM ( FactSalesPerformance[ActualSales] )
+VAR _Quota =        SUM ( FactSalesPerformance[Quota] )
+VAR _NewDeals =     SUM ( FactSalesPerformance[NewDeals] )
+VAR _ChurnedARR =   SUM ( FactSalesPerformance[ChurnedARR] )
+VAR _QuotaPct =     DIVIDE ( _ActualSales, _Quota )
+VAR _QuotaPctFmt =  SUBSTITUTE ( FORMAT ( _QuotaPct, "0%" ), "%", "%25" )
+VAR _Tier =
+    SWITCH (
+        TRUE (),
+        _QuotaPct >= 1.1, "Outstanding",
+        _QuotaPct >= 1.0, "On Target",
+        _QuotaPct >= 0.8, "Needs Improvement",
+        "At Risk"
+    )
+VAR _Greeting =
+    SWITCH (
+        TRUE (),
+        _QuotaPct >= 1.1, "Congratulations on an exceptional month!",
+        _QuotaPct >= 1.0, "Great work hitting your target this month!",
+        _QuotaPct >= 0.8, "Thank you for your continued efforts this month.",
+        "This is an important update regarding your sales performance."
+    )
+VAR _NL =  "%0D%0A"
+VAR _NL2 = "%0D%0A%0D%0A"
+VAR _Subject = "&subject=Sales Performance Update - " & _MonthYear & " - " & _Tier
+VAR _Body =
+    "&body=Hi " & _RepName & "," & _NL2 &
+    _Greeting & _NL2 &
+    "Here is your performance summary for " & _MonthYear & ":" & _NL2 &
+    "Performance Status: " & _Tier & _NL &
+    "Actual Sales: $" & FORMAT ( _ActualSales, "#,0" ) & _NL &
+    "Quota: $" & FORMAT ( _Quota, "#,0" ) & _NL &
+    "Quota Attainment: " & _QuotaPctFmt & _NL &
+    "New Deals Closed: " & _NewDeals & _NL &
+    "Churned ARR: $" & FORMAT ( _ChurnedARR, "#,0" ) & _NL2 &
+    "Region: " & _Region & _NL2 &
+    "Please reach out if you have any questions." & _NL2 &
+    "Best regards," & _NL &
+    _ManagerName
+RETURN
+        "mailto:" & _RepEmail & "?cc=" & _ManagerEmail & _Subject & _Body
