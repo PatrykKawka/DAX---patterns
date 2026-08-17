@@ -1,0 +1,84 @@
+Decyl całość =
+VAR CurrentWartosc =
+    DIVIDE(
+        SUM(TABELA[KOLUMNA_LICZNIK]),
+        SUM(TABELA[KOLUMNA_MIANOWNIK]),
+        0
+    ) -- można uzyć gotowej miary,
+
+VAR CalaPopulacja =
+    ALL(TABELA)           -- ignoruje wszystkie filtry z matrycy, można all na wybrane kolumny dać też, np raban i nazwe oddziału w zależności co chcemy pokazywać
+
+-- alternatywnie jeśli moga wystąpić wartości puste to warto CalaPopulacja owinąć w filter, np:
+VAR CalaPopulacja =
+    FILTER(ALL(TABELA), NOT(ISBLANK(CALCULATE(_miara))) --ważne, nie używamy miary ze zmienej bo będzie błędny wynik - zmienna wylicza się raz!
+
+VAR LiczbaElementow =
+    COUNTROWS(CalaPopulacja)
+
+VAR RankWCalosci =
+    RANKX(
+        CalaPopulacja,
+        _miara, --ważne, nie używamy miary ze zmienej bo będzie błędny wynik - zmienna wylicza się raz!
+        CurrentWartosc,
+        ASC,       -- ASC = decyl 1 to najsłabsze; zmień na DESC jeśli odwrotnie
+        Dense      -- Dense = brak luk przy remisach
+    )
+
+VAR Decyl = CEILING(DIVIDE(RankWCalosci, LiczbaElementow) * 10, 1)
+
+RETURN
+ISBLANK(CurrentWartosc), BLANK(), _Decyl)
+
+Logika: rank elementu ÷ łączna liczba elementów × 10, zaokrąglone w górę → przedziały 1–10.
+Kiedy używać: ranking wszystkich wierszy tabeli bez podziału na podgrupy, np. decyl gminy spośród wszystkich gmin w Polsce.
+Uwaga: zmień ASC → DESC jeśli chcesz, żeby decyl 1 oznaczał najlepszych. Trzeba uważać z uzywaniem miary do rankingowania - nie ze zmiennej.
+
+
+
+
+Decyl w grupie =
+VAR CurrentGrupa1 = MAX(TABELA[KOLUMNA_GRUPA_1])   -- np. typ gminy
+VAR CurrentGrupa2 = MAX(TABELA[KOLUMNA_GRUPA_2])   -- np. przedział mieszkańców
+
+VAR CurrentWartosc =
+    DIVIDE(
+        SUM(TABELA[KOLUMNA_LICZNIK]),
+        SUM(TABELA[KOLUMNA_MIANOWNIK]),
+        0
+    )
+
+VAR GrupaElementow =                   -- tabela: ten sam typ i przedział
+    FILTER(
+        ALL(TABELA),
+        TABELA[KOLUMNA_GRUPA_1] = CurrentGrupa1
+            && TABELA[KOLUMNA_GRUPA_2] = CurrentGrupa2
+        -- && TABELA[KOLUMNA_GRUPA_3] = CurrentGrupa3  ← dodaj jeśli potrzeba
+    )
+
+VAR LiczbaWGrupie =
+    COUNTROWS(SUMMARIZE(GrupaElementow, TABELA[KOLUMNA_ID]))
+
+VAR RankWGrupie =
+    RANKX(
+        GrupaElementow,
+        CALCULATE(
+            DIVIDE(
+                SUM(TABELA[KOLUMNA_LICZNIK]),
+                SUM(TABELA[KOLUMNA_MIANOWNIK]),
+                0
+            )
+        ),
+        CurrentWartosc,
+        ASC,       -- ASC = decyl 1 to najsłabsze w grupie
+        Dense
+    )
+
+VAR Decyl = CEILING(DIVIDE(RankWGrupie, LiczbaWGrupie) * 10, 1)
+
+RETURN
+    IF(LiczbaWGrupie > 0, Decyl, BLANK())
+
+Logika: identyczna co szablon 1, ale RANKX operuje wyłącznie na podzbiorze gmin spełniających warunki grupowania — odpowiednik PARTITION BY z SQL.
+Kiedy używać: porównanie elementu tylko z jego rówieśnikami (peer group), np. gmina miejska w przedziale 20–50k mieszkańców vs. inne gminy miejskie tego samego przedziału.
+Skalowalność: dodaj kolejny warunek && TABELA[KOL] = CurrentKol w FILTER i odpowiadającą zmienną VAR — liczba partycji jest dowolna.
