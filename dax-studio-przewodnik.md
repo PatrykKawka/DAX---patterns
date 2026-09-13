@@ -1,7 +1,5 @@
 # DAX Studio — kompletny przewodnik: analiza modelu, wydajność, testowanie miar
 
-Przewodnik zakłada, że pracujesz na modelu gwiazdy (dim_Klienci, dim_Placowki, dim_Kalendarz, dim_Produkty, fact_Sprzedaz) i masz już zestaw miar DAX do analizy sprzedaży. Skupiam się na tym, co realnie zmienia pracę: diagnostykę wydajności, porównywanie alternatywnych wzorców DAX i analizę struktury modelu (VertiPaq).
-
 ---
 
 ## 1. Połączenie z modelem
