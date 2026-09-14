@@ -104,7 +104,7 @@ SUMX (
 )
 ```
 
-Sam `CALCULATE()` bez żadnych dodatkowych filtrów, wywołany wewnątrz iteratora, **też wykonuje Context Transition** — sam fakt użycia `CALCULATE` wewnątrz Row Context wystarczy, żeby zamienić Row Context na Filter Context oparty o wartości bieżącego wiersza. To częsty błąd w interpretacji: ludzie myślą, że `CALCULATE` "nic nie robi", jeśli nie ma dodatkowych argumentów filtru — w rzeczywistości w Row Context zawsze robi Context Transition.
+Sam `CALCULATE()` bez żadnych dodatkowych filtrów, wywołany wewnątrz iteratora, **też wykonuje Context Transition** — sam fakt użycia `CALCULATE` wewnątrz Row Context wystarczy, żeby zamienić Row Context na Filter Context oparty o wartości bieżącego wiersza. To częsty błąd w interpretacji: ludzie myślą, że `CALCULATE` "nic nie robi", jeśli nie ma dodatkowych argumentów filtru — w rzeczywistości w Row Context zawsze robi Context Transition. **Użycie miary wewnątrz iteratora autora i tak automatycznie owija ją w `CALCULATE`, dlatego nie ma znaczenia czy zrobimy to jawnie czy nie. Jeśli wewnątrz iteratora wpiszemy treść miary jest to interpretowane jako wyrażenie a nie miara dlatego trzeba to owinąć w `CALCULATE`**.
 
 ### 4.3 Context Transition na Twojej mierze TOP10 klientów — pełna analiza
 
