@@ -63,6 +63,19 @@ Eksport wyników (`Export Model Metrics`) pozwala śledzić zmiany rozmiaru mode
 
 ---
 
+### 3.1 Gdzie szukać efektu RLE — DAX Studio nie ma osobnej metryki "RLE"
+
+Ważne zastrzeżenie: RLE **nie jest** wystawione w interfejsie jako osobna, nazwana metryka — nie zobaczysz kolumny "RLE %" w View Metrics. Efekt widać pośrednio, na dwa sposoby:
+
+1. **Przez `Data Size` w zakładce Columns** — kolumna z niską kardynalnością i dobrym sortowaniem będzie miała `Data Size` wyraźnie mniejszy, niż wynikałoby z samej liczby wierszy. To pośredni, ale najbardziej praktyczny sygnał.
+2. **Przez surowe zapytanie DMV** w oknie zapytania: `SELECT * FROM $SYSTEM.DISCOVER_STORAGE_TABLE_COLUMN_SEGMENTS WHERE [TABLE_ID] = 'fact_Sprzedaz'` — zwraca szczegóły segmentów, choć część pól tego DMV nie jest w pełni udokumentowana przez Microsoft.
+
+Najbliżej pełnego obrazu kompresji jest osobne narzędzie **VertiPaq Analyzer od SQLBI (skoroszyt Excel)**, z zakładką "Compression report" pokazującą rozkład segmentów wg typu kompresji — ale to inne narzędzie niż sam DAX Studio (oparte na tych samych DMV).
+
+**Praktyczny test zamiast szukania metryki wprost:** porównaj `Data Size` kolumny `Data` w `fact_Sprzedaz` (View Metrics) przed i po dodaniu `ORDER BY Data` w widoku SQL zasilającym tabelę — spadek `Data Size` po posortowaniu to bezpośredni dowód działania RLE, w duchu testu A/B z sekcji 4 i 13.
+
+---
+
 ## 4. Testowanie i pomiar wydajności miar — Server Timings
 
 **Home → Server Timings** (włącz przed uruchomieniem zapytania) rejestruje podział czasu na FE i SE.
