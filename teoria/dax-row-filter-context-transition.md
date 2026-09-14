@@ -154,6 +154,25 @@ COUNTROWS (
 
 To **nie zadziała poprawnie** — `COUNTROWS(fact_Sprzedaz)` bez `CALCULATE` **nie jest miarą**, tylko wyrażeniem operującym na tabeli fizycznej `fact_Sprzedaz` — nie ma tu żadnej niejawnej Context Transition, bo `COUNTROWS` samo w sobie nie jest miarą wywołaną w Row Context, tylko funkcją tabelaryczną operującą na całej tabeli w bieżącym Filter Context (który na tym etapie jeszcze nie uwzględnia bieżącego klienta z Row Context `FILTER`). Wynik: dla każdego klienta dostaniesz tę samą liczbę — łączną liczbę wierszy `fact_Sprzedaz` w całym, niezawężonym kontekście. **To jest jeden z najczęstszych błędów logicznych w DAX** — brak `CALCULATE` tam, gdzie Row Context powinien "wejść" do filtra tabeli faktów.
 
+**Wariant z LASTNONBLANK** - funkcja jest iteratorem i wykonuje iteracje, np. po tabeli kalendarza - musimy użyć albo miary albo owinąć wyrażenie w CALCULATE, nie możemy utworzyć zmiennej z miarą
+
+```dax
+Stan na koniec roku =
+VAR OstatniaData =
+    LASTNONBLANK(
+        'dim_Kalendarz'[date],
+        [Stan magazynowy]
+    )
+RETURN
+    CALCULATE(
+        [Stan magazynowy],
+        'dim_Kalendarz'[date] = OstatniaData,
+        TREATAS(
+            VALUES(dim_Sprzedawcy[storekey]),
+            fact_StanyMagazynowe[storekey]
+        )
+    )
+```
 ---
 
 ## 5. Podwójny Context Transition — iterator wewnątrz iteratora
