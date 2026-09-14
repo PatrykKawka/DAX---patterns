@@ -55,10 +55,10 @@ Dla Twojego stacku (Power BI + SQL Server): jeśli w ogóle rozważasz DirectQue
 | **Data** (Data Size) | Rozmiar w bajtach samych **zakodowanych wartości** (wektor indeksów przy Hash, wektor wartości przy Value) — bez słownika | To jest część, na którą wpływa RLE i typ encoding. Rośnie liniowo z liczbą wierszy, ale wolniej, jeśli dane dobrze się kompresują (posortowane, niska kardynalność). |
 | **Dictionary** (Dictionary Size) | Rozmiar w bajtach **słownika unikalnych wartości** — istnieje tylko przy Hash/Dictionary encoding | Niezależny od liczby wierszy, zależny od kardynalności i długości/typu przechowywanych wartości (dłuższe teksty = większy słownik). Przy Value encoding to pole jest bliskie zeru, bo słownika nie ma. |
 | **Total Size** | `Data + Dictionary + HierSize` — pełny koszt pamięciowy kolumny | To jest liczba, którą realnie porównujesz między kolumnami przy szukaniu "gdzie model jest ciężki". |
-| **HierSize** (Hierarchy Size) | Rozmiar dodatkowej struktury **attribute hierarchy** — wewnętrznego indeksu budowanego automatycznie dla każdej kolumny (nawet ukrytej), używanego m.in. przy filtrowaniu/sortowaniu i przez silnik MDX | Często pomijane, a bywa zaskakująco duże dla kolumn technicznych/kluczy o wysokiej kardynalności. Da się to wyłączyć właściwością `IsAvailableInMDX = false` (patrz przewodnik Tabular Editor, sekcja 13, przykład 7) dla kolumn ukrytych, niesłużących jako oś w wizualach — bezpośrednio redukuje `HierSize` do ~0. |
+| **HierSize** (Hierarchy Size) | Rozmiar dodatkowej struktury **attribute hierarchy** — wewnętrznego indeksu budowanego automatycznie dla każdej kolumny (nawet ukrytej), używanego m.in. przy filtrowaniu/sortowaniu i przez silnik MDX | Często pomijane, a bywa zaskakująco duże dla kolumn technicznych/kluczy o wysokiej kardynalności. Da się to wyłączyć właściwością `IsAvailableInMDX = false` (Tabular Editor) dla kolumn ukrytych, niesłużących jako oś w wizualach — bezpośrednio redukuje `HierSize` do ~0. |
 | **Encoding** | `VALUE` albo `HASH` — wybrany przez silnik sposób kodowania kolumny | Rozwinięte w sekcji 3.2 — nie zawsze oczywiste "na logikę", warto rozumieć czynniki decydujące. |
 | **% Table / % Database** | Udział rozmiaru kolumny/tabeli w rozmiarze odpowiednio całej tabeli / całego modelu | Szybki sposób znalezienia "gdzie szukać" bez porównywania bezwzględnych liczb między tabelami różnej wielkości. |
-| **Partitions** | Liczba partycji fizycznych danej tabeli | W Power BI Pro/Desktop zwykle `1` (patrz przewodnik Tabular Editor, sekcja 7 — partycjonowanie wymaga Premium/Fabric/Azure AS). Więcej niż 1 partycja sugeruje Incremental Refresh już skonfigurowany na serwerze albo model na Azure AS. |
+| **Partitions** | Liczba partycji fizycznych danej tabeli | W Power BI Pro/Desktop zwykle `1` (Tabular Editor). Więcej niż 1 partycja sugeruje Incremental Refresh już skonfigurowany na serwerze albo model na Azure AS. |
 | **Segments** | Liczba segmentów fizycznych (podział wewnątrz partycji, patrz sekcja 2.1 — ok. 8 mln wierszy/segment) | Rośnie wraz z liczbą wierszy tabeli. Duża liczba segmentów sama w sobie nie jest problemem (SE skanuje je równolegle), ale warto wiedzieć, że to inny podział niż Partitions — Partitions to Twój świadomy podział (np. wg miesiąca), Segments to wewnętrzny podział silnika w obrębie jednej partycji. |
 
 ### 3.2 Encoding — dlaczego kolumna czasem "wbrew logice" dostaje Hash zamiast Value
@@ -113,7 +113,7 @@ WHERE [TABLE_ID] LIKE '%fact_Sprzedaz%'
 SELECT * FROM $SYSTEM.DISCOVER_STORAGE_TABLE_COLUMN_SEGMENTS
 WHERE [TABLE_ID] LIKE '%fact_Sprzedaz%'
 
--- Partycje fizyczne tabeli (przydatne przy Premium/Fabric/Azure AS, patrz przewodnik Tabular Editor sekcja 7)
+-- Partycje fizyczne tabeli (Tabular Editor)
 SELECT * FROM $SYSTEM.DISCOVER_STORAGE_TABLE_PARTITIONS
 
 -- Zużycie pamięci przez poszczególne obiekty modelu (tabele, kolumny, hierarchie, relacje) w jednym miejscu
