@@ -21,7 +21,7 @@ Sprzedaz Total = SUM ( fact_Sprzedaz[Kwota] )
 To najprostsza miara — nie ma tu żadnego Row Context, tylko czysty Filter Context. Kiedy umieścisz tę miarę w wizualu z osią `dim_Kalendarz[Rok]` i `dim_Klienci[Segment]`, silnik:
 
 1. Buduje Filter Context z bieżącej kombinacji Rok + Segment (np. Rok=2025, Segment="Premium").
-2. Filtr ten propaguje się przez relacje z `dim_Kalendarz` i `dim_Klienci` do `fact_Sprzedaz` (kierunek Single, standardowy w Twoim modelu — patrz przewodnik Tabular Editor, sekcja 6).
+2. Filtr ten propaguje się przez relacje z `dim_Kalendarz` i `dim_Klienci` do `fact_Sprzedaz` (kierunek Single, standardowy w Twoim modelu).
 3. `SUM` sumuje kolumnę `Kwota` **tylko dla wierszy `fact_Sprzedaz`, które przeszły przez ten filtr**.
 
 **Kluczowy fakt:** Filter Context nie musi pochodzić z wizuala. `CALCULATE` pozwala go modyfikować jawnie:
