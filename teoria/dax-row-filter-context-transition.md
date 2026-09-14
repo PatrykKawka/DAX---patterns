@@ -1,20 +1,18 @@
 # Row Context, Filter Context i Context Transition w DAX — przewodnik na przykładach
 
-Przewodnik komplementarny do przewodników o DAX Studio i Tabular Editor — tam mierzysz/edytujesz, tu rozumiesz *dlaczego* konkretny wzorzec DAX daje taki, a nie inny wynik. To jest najczęstsze źródło błędów logicznych (nie wydajnościowych) w modelach takich jak Twój. Przykłady oparte na modelu: `dim_Klienci`, `dim_Placowki`, `dim_Kalendarz`, `dim_Produkty`, `fact_Sprzedaz` (standardowa gwiazda) + `dim_Liczba_miesiecy`, `dim_%_sprzedazy` (tabele parametryczne bez relacji).
-
 ---
 
-## 1. Dwa rodzaje kontekstu — definicje, zanim zobaczysz kod
+## 1. Dwa rodzaje kontekstu — definicje
 
 - **Filter Context (kontekst filtru)** — zbiór filtrów aktywnych w danym momencie obliczenia. Powstaje z: wierszy/kolumn wizuala, slicerów, `CALCULATE`, relacji między tabelami. To jest kontekst "z zewnątrz" — mówi silnikowi *które wiersze tabel bazowych są w ogóle widoczne* przy obliczeniu miary.
-- **Row Context (kontekst wiersza)** — istnieje tylko wtedy, gdy silnik "stoi" na konkretnym, pojedynczym wierszu tabeli. Powstaje w: kolumnach obliczanych (zawsze) i funkcjach iterujących (`SUMX`, `FILTER`, `ADDCOLUMNS`, `RANKX` i inne z końcówką `X` lub iterujące po naturze). Row Context **nie filtruje** niczego samoczynnie — to tylko wskaźnik "jestem teraz na tym wierszu".
+- **Row Context (kontekst wiersza)** — istnieje tylko wtedy, gdy silnik "stoi" na konkretnym, pojedynczym wierszu tabeli. Powstaje w: kolumnach obliczanych (zawsze) i funkcjach iterujących (`SUMX`, `FILTER`, `ADDCOLUMNS`, `RANKX` i innych z końcówką `X` lub iterujące po naturze). Row Context **nie filtruje** niczego samoczynnie — to tylko wskaźnik "jestem teraz na tym wierszu".
 - **Context Transition (transformacja kontekstu)** — mechanizm, w którym `CALCULATE` (jawne lub niejawne, np. wewnątrz miary wywołanej z iteratora) **zamienia aktualny Row Context na Filter Context** równoważny "ten jeden wiersz i tylko ten wiersz". To jest most między dwoma światami i najczęstsze źródło nieporozumień w DAX.
 
 Zasada, którą warto zapamiętać na starcie: **kolumna obliczana widzi tylko Row Context (i istniejący na starcie Filter Context, jeśli jakiś jest), a miara zawsze operuje przez Filter Context — jeśli miara jest wywołana wewnątrz Row Context, musi dojść do Context Transition, żeby w ogóle dała wynik.**
 
 ---
 
-## 2. Filter Context — podstawa, na której stoi każda miara
+## 2. Filter Context — podstawa, na której stoi każda miara. Konktekst filtra istnieje zawsze.
 
 ```dax
 Sprzedaz Total = SUM ( fact_Sprzedaz[Kwota] )
@@ -157,33 +155,7 @@ To **nie zadziała poprawnie** — `COUNTROWS(fact_Sprzedaz)` bez `CALCULATE` **
 
 ---
 
-## 5. Miara "klienci aktywni w każdym miesiącu" — Context Transition na dwóch poziomach naraz
-
-```dax
-Liczba Klientow Aktywnych =
-CALCULATE (
-    DISTINCTCOUNT ( fact_Sprzedaz[ID_Klienta] ),
-    dim_Kalendarz[Miesiac] = SELECTEDVALUE ( dim_Liczba_miesiecy[Wartosc] )
-)
-```
-
-Tu nie ma iteratora — to prosta miara z `CALCULATE` modyfikującym filtr na podstawie tabeli parametrycznej `dim_Liczba_miesiecy` (bez relacji do modelu, stąd `SELECTEDVALUE` zamiast polegania na propagacji filtru przez relację). Warto to zestawić z poprzednimi przykładami, bo pokazuje, że **nie każdy `CALCULATE` robi Context Transition** — tylko wtedy, gdy jest wywołany *wewnątrz Row Context*. Tutaj `CALCULATE` jest na najwyższym poziomie miary (brak otaczającego iteratora), więc po prostu modyfikuje istniejący Filter Context — żadnej transformacji z Row Context nie ma, bo Row Context w ogóle nie istnieje w tym miejscu.
-
-**Rozszerzenie — aktywni klienci per miesiąc, jako iteracja po `dim_Kalendarz` (żeby np. narysować trend):**
-
-```dax
-Sredni Miesieczny Klienci Aktywni =
-AVERAGEX (
-    VALUES ( dim_Kalendarz[Miesiac] ),
-    CALCULATE ( DISTINCTCOUNT ( fact_Sprzedaz[ID_Klienta] ) )
-)
-```
-
-Tu `AVERAGEX` tworzy Row Context po miesiącach, `CALCULATE` wewnątrz wyzwala Context Transition (filtr do konkretnego miesiąca), `DISTINCTCOUNT` liczy unikalnych klientów w tym zawężonym kontekście, a `AVERAGEX` na końcu uśrednia wyniki po wszystkich miesiącach z bieżącego Filter Context.
-
----
-
-## 6. Podwójny Context Transition — iterator wewnątrz iteratora
+## 5. Podwójny Context Transition — iterator wewnątrz iteratora
 
 To już poziom zaawansowany, ale bardzo praktyczny przy analizach klient × produkt.
 
@@ -206,14 +178,14 @@ Krok po kroku:
 1. Zewnętrzny `SUMX` iteruje po klientach — Row Context #1.
 2. `VAR SprzedazKlienta` — Context Transition #1: filtr zawężony do jednego klienta, licząc jego całkowitą sprzedaż.
 3. Wewnętrzny `MAXX` iteruje po kategoriach produktów — Row Context #2, **ale wewnątrz już zawężonego Filter Context "ten klient"** (bo `VALUES(dim_Produkty[Kategoria])` samo w sobie nie zeruje filtra na klienta ustawionego wyżej — filtry z różnych tabel kumulują się, nie nadpisują się nawzajem, chyba że jawnie to zrobisz).
-4. `CALCULATE([Sprzedaz Total])` wewnątrz `MAXX` — Context Transition #2: teraz filtr to "ten klient" **ORAZ** "ta kategoria" jednocześnie.
+4. `CALCULATE([Sprzedaz Total])` wewnątrz `MAXX` — Context Transition #2: teraz filtr to "ten klient" **ORAZ** "ta kategoria" jednocześnie. CALCULATE nie jest tutaj niezbędne ale ułatwia zrozumienie kodu.
 5. `MAXX` zwraca największą sprzedaż w pojedynczej kategorii dla tego klienta; porównanie z sumą całkowitą tego klienta daje wskaźnik koncentracji zakupów.
 
-**Dlaczego to jest kosztowne (link do przewodnika DAX Studio):** dwa zagnieżdżone Context Transitions oznaczają, że dla *każdej* kombinacji klient × kategoria silnik wykonuje osobne, kosztowne przeliczenie Formula Engine. Przy dużej liczbie klientów i kategorii to jest dokładnie wzorzec, który w Server Timings pokaże wysoki % FE i dużą liczbę SE queries — dobry kandydat do zmierzenia i przetestowania alternatywy (np. przez `SUMMARIZECOLUMNS` budujący tabelę klient×kategoria jednym przebiegiem zamiast zagnieżdżonej iteracji) w DAX Studio, zanim wdrożysz do modelu.
+**Dlaczego to jest kosztowne:** dwa zagnieżdżone Context Transitions oznaczają, że dla *każdej* kombinacji klient × kategoria silnik wykonuje osobne, kosztowne przeliczenie Formula Engine. Przy dużej liczbie klientów i kategorii to jest dokładnie wzorzec, który w Server Timings pokaże wysoki % FE i dużą liczbę SE queries — dobry kandydat do zmierzenia i przetestowania alternatywy (np. przez `SUMMARIZECOLUMNS` budujący tabelę klient×kategoria jednym przebiegiem zamiast zagnieżdżonej iteracji) w DAX Studio, zanim wdrożysz do modelu.
 
 ---
 
-## 7. `KEEPFILTERS` — kiedy Context Transition/CALCULATE "za bardzo" nadpisuje filtr
+## 6. `KEEPFILTERS` — kiedy Context Transition/CALCULATE "za bardzo" nadpisuje filtr
 
 Domyślnie `CALCULATE` z warunkiem na kolumnie **nadpisuje** istniejący filtr na tej kolumnie (nie dodaje do niego). To bywa nieoczekiwane przy Context Transition połączonym z dodatkowym filtrem:
 
@@ -239,7 +211,7 @@ Teraz silnik zachowuje istniejący filtr z wizuala **i** dokłada nowy warunek �
 
 ---
 
-## 8. Podsumowanie — checklist mentalny przy pisaniu miary
+## 7. Podsumowanie — checklist mentalny przy pisaniu miary
 
 Przy każdej nowej mierze z iteratorem warto zadać sobie kolejno:
 
