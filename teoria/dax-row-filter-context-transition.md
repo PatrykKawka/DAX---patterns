@@ -86,7 +86,6 @@ Co się dzieje krok po kroku:
 3. Wewnątrz `IF` wywołujesz **miarę** `[Sprzedaz Total]`. Miara zawsze potrzebuje Filter Context, a mamy tylko Row Context (jesteśmy "na wierszu" klienta w tabeli wirtualnej z `VALUES`) — więc silnik **automatycznie opakowuje to wywołanie w `CALCULATE`**, co wyzwala Context Transition: bieżąca wartość `dim_Klienci[ID_Klienta]` z Row Context staje się filtrem "ID_Klienta = ten konkretny klient" w nowym Filter Context.
 4. `[Sprzedaz Total]` liczy się więc dla **tego jednego klienta**, mimo że formalnie miara nie wie nic o "wierszach" — dostaje gotowy, zawężony Filter Context.
 
-**To jest dokładnie mechanizm, na którym opierają się Twoje miary TOP10/TOP10%.**
 
 ### 4.2 Ten sam mechanizm, ale jawny `CALCULATE`
 
