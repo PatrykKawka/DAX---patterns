@@ -6,7 +6,7 @@
 
 - **Connect → Power BI / Analysis Services** — DAX Studio wykrywa otwarte instancje Power BI Desktop (lokalny port SSAS) i pliki `.pbix` z otwartym modelem. Możesz też połączyć się z Power BI Service (Premium/Fabric) albo lokalnym SSAS Tabular.
 - Po połączeniu masz dostęp do **Metadata pane** (lewa strona) — drzewo tabel, kolumn, miar, hierarchii i perspektyw.
-- **Ważne dla Twojego workflow**: DAX Studio łączy się *na żywo* z silnikiem — zmiany w modelu (np. w Tabular Editor) widoczne są po odświeżeniu metadanych (`Refresh` w metadata pane), bez potrzeby zamykania sesji.
+- **Ważne dla Twojego workflow**: DAX Studio łączy się *na żywo* z silnikiem — zmiany w modelu (np. w Tabular Editor) widoczne są po odświeżeniu metadanych (`Refresh` w metadata panel), bez potrzeby zamykania sesji.
 
 ---
 
