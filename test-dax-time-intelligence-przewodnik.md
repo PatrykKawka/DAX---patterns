@@ -489,11 +489,4 @@ Logika: licz sprzedaż okresu porównawczego, podziel przez liczbę dni w tym ok
 
 ---
 
-## Materiały źródłowe do dalszej nauki
 
-- dax.guide/functions/time-intelligence — pełna lista funkcji z oficjalnymi opisami.
-- SQLBI, *Optimizing LASTNONBLANK and LASTNONBLANKVALUE calculations* — źródło sekcji 7.
-- SQLBI, *Understanding DATEADD parameters with calendar-based time intelligence* oraz *Differences between DATEADD and PARALLELPERIOD in DAX* — źródło sekcji 1.3.
-- SQLBI, *Blank in date columns and DAX time intelligence functions* — źródło sekcji 8.
-- SQLBI TV, *Understanding Time Intelligence with DAX* — wideo wprowadzające, dobre uzupełnienie tego przewodnika w formie video.
-- DAX Patterns, *Comparing different time periods* (daxpatterns.com) — źródło sekcji 9, z pełnym, gotowym do wdrożenia wzorcem (w tym wariant zoptymalizowany pod wydajność, wykraczający poza uproszczoną wersję zaprezentowaną tutaj).
