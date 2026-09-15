@@ -156,14 +156,32 @@ ROWNUMBER ( [<Relation> lub <Axis>] [, <OrderBy>] [, <Blanks>] [, <PartitionBy>]
 
 Parametry identyczne jak w `RANK` (bez `<Ties>`). **Kluczowa różnica względem `RANK`/`RANKX`: `ROWNUMBER` zawsze zwraca unikalny numer dla każdego wiersza — nie ma pojęcia remisu.** Przy identycznych wartościach sortowania, kolejność między "remisującymi" wierszami jest deterministyczna dzięki dodatkowym kolumnom domyślnie dołączanym do sortowania (albo jawnie przez `MatchBy`), ale nie ma dwóch wierszy z tym samym numerem.
 
-**Przykład — numeracja transakcji klienta chronologicznie (przydatne np. do identyfikacji "która to zakupowo transakcja klienta"):**
+**Przykład — alternatywa dla rankingu z RANK:**
+```dax
+ROWNUMBER dla sprzedawcy = 
+ROWNUMBER(
+    ALLSELECTED(dim_Sprzedawcy[employeekey]),
+    ORDERBY([Total Sales], DESC)
+)
+```
+
+**Przykład 2 — numeracja transakcji klienta chronologicznie (przydatne np. do identyfikacji "która to zakupowo transakcja klienta"):**
 
 ```dax
 Numer Transakcji Klienta =
-ROWNUMBER (
-    ORDERBY ( fact_Sprzedaz[Data], ASC ),
+ROWNUMBER(
+    ALLSELECTED(
+        fact_Sprzedaz[customerkey],
+        fact_Sprzedaz[orderdatekey],
+        fact_Sprzedaz[saleskey]
+    ),
+    ORDERBY(
+        fact_Sprzedaz[orderdatekey], ASC,
+        fact_Sprzedaz[saleskey], ASC
+    ),DEFAULT
     ,
-    PARTITIONBY ( fact_Sprzedaz[ID_Klienta] )
+    PARTITIONBY(fact_Sprzedaz[customerkey])
+)
 )
 ```
 
