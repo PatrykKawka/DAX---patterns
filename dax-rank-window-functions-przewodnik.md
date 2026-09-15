@@ -245,16 +245,29 @@ Sprzedaz vs Poprzedni Miesiac =
 
 ```dax
 Kwota Poprzedniej Transakcji Klienta =
-VAR WierszPoprzedni =
-    OFFSET (
+VAR PoprzedniWiersz =
+    OFFSET(
         -1,
-        fact_Sprzedaz,
-        ORDERBY ( fact_Sprzedaz[Data], ASC ),
+        ALLSELECTED(
+            fact_Sprzedaz[customerkey],
+            fact_Sprzedaz[orderdatekey],
+            fact_Sprzedaz[saleskey],
+            fact_Sprzedaz[salesamount]
+        ),
+        ORDERBY(
+            fact_Sprzedaz[orderdatekey], ASC,
+            fact_Sprzedaz[saleskey], ASC
+        ),
         ,
-        PARTITIONBY ( fact_Sprzedaz[ID_Klienta] )
+        PARTITIONBY(
+            fact_Sprzedaz[customerkey]
+        )
     )
 RETURN
-    SUMX ( WierszPoprzedni, fact_Sprzedaz[Kwota] )
+    SUMX(
+        PoprzedniWiersz,
+        fact_Sprzedaz[salesamount]
+    )
 ```
 
 **Wymóg kluczy przy braku unikalności:** jeśli `fact_Sprzedaz` nie ma kolumny jednoznacznie identyfikującej wiersz (np. samego `Numer_Zamowienia`), a sortowanie po samej dacie daje remisy (dwie transakcje tego samego dnia), `OFFSET` może zażądać `MatchBy` z dodatkową kolumną-kluczem, inaczej zwróci błąd albo wiele wierszy naraz.
