@@ -1,0 +1,5 @@
+Sprzedaz TOP10 Produktow =
+VAR TopProdukty =
+    TOPN ( 10, VALUES ( dim_Produkty[ID_Produktu] ), [Sprzedaz Total], DESC )
+RETURN
+    CALCULATE ( [Sprzedaz Total], TopProdukty )
