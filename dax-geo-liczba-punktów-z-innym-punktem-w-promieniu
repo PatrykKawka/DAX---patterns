@@ -1,0 +1,49 @@
+Liczba oddziałów z innym oddziałem <= 5 km =
+/*
+SCENARIUSZ:
+    Liczba oddziałów, które mają przynajmniej jeden INNY oddział w promieniu 5 km.
+
+WYMAGANIA WSTĘPNE:
+    - 1 wiersz = 1 oddział
+    - szerokość i długość geograficzna w stopniach
+    - współrzędne muszą być poprawne
+    - odległość liczona jako "as the crow flies"
+
+LOGIKA:
+    1. Iterujemy po wszystkich oddziałach.
+    2. Dla każdego oddziału pobieramy wszystkie pozostałe oddziały.
+    3. Liczymy odległość Haversine.
+    4. Sprawdzamy, czy istnieje minimum jeden oddział <= 5 km.
+    5. SUMX zlicza takie oddziały.
+*/
+
+VAR WszystkieOddzialy =
+    ALL ( dim_Oddziały )
+  
+RETURN
+    SUMX (
+        WszystkieOddzialy,
+        VAR Lat1 = RADIANS ( dim_Oddziały[szerokość_geograficzna] )
+        VAR Lon1 = RADIANS ( dim_Oddziały[długość_geograficzna] )
+        VAR OddzialKey = dim_Oddziały[OddzialKey]
+        VAR CzyMaOddzialWPromieniu =
+            COUNTROWS (
+                FILTER (
+                    WszystkieOddzialy,
+                    VAR Lat2 =  RADIANS ( dim_Oddziały[szerokość_geograficzna] )
+                    VAR Lon2 =  RADIANS ( dim_Oddziały[długość_geograficzna] )
+                    VAR DeltaLat =  Lat2 - Lat1
+                    VAR DeltaLon =Lon2 - Lon1
+                    VAR A =  POWER ( SIN ( DeltaLat / 2 ), 2 ) + COS ( Lat1 ) * COS ( Lat2 ) * POWER ( SIN ( DeltaLon / 2 ), 2 )
+                    VAR OdlegloscKm = 6371 * 2 * ASIN ( SQRT ( A ) )
+
+                    RETURN
+                        dim_Oddziały[OddzialKey] <> OddzialKey
+                            && NOT ISBLANK ( OdlegloscKm )
+                            && OdlegloscKm <= 5
+                )
+            ) > 0
+
+        RETURN
+            IF ( CzyMaOddzialWPromieniu, 1, 0 )
+    )
