@@ -66,6 +66,34 @@ Ranking Klientow Dense =
 RANKX ( ALL ( dim_Klienci[ID_Klienta] ), [Sprzedaz Total], , DESC, DENSE )
 ```
 
+**Parametr `<Value>` - przykładowe scenariusze użycia**
+
+**a) scenariusz "co gdyby" (What-If parameter)**
+Załóżmy, że masz w Power BI parametr What-If pozwalający użytkownikowi wpisać hipotetyczną kwotę sprzedaży (np. suwak od 0 do 500 000 zł) i chcesz pokazać, na którym miejscu w rankingu klientów znalazłaby się taka wartość — niezależnie od tego, który klient jest aktualnie w kontekście wiersza:
+```dax
+Ranking Hipotetycznej Sprzedazy =
+VAR HipotetycznaSprzedaz = SELECTEDVALUE ( dim_ParametrWhatIf[Wartosc] )
+RETURN
+    RANKX (
+        ALL ( dim_Klienci[ID_Klienta] ),
+        [Sprzedaz Total],
+        HipotetycznaSprzedaz
+    )
+```
+**b) Przykład 2 — ranking klienta z zeszłego roku względem tegorocznej listy**
+Praktyczniejszy przypadek: chcesz sprawdzić, na którym miejscu w tegorocznym rankingu znalazłby się klient, gdyby porównać go z jego zeszłoroczną sprzedażą (klasyczne pytanie: "czy klient awansował, czy spadł w rankingu, licząc względem tej samej, aktualnej listy konkurentów"):
+```dax
+Ranking PY Wzgledem Biezacej Listy =
+VAR SprzedazPYKlienta =
+    CALCULATE ( [Sprzedaz Total], SAMEPERIODLASTYEAR ( dim_Kalendarz[Data] ) )
+RETURN
+    RANKX (
+        ALL ( dim_Klienci[ID_Klienta] ),
+        [Sprzedaz Total],          -- tabela odniesienia: BIEŻĄCA sprzedaż wszystkich klientów
+        SprzedazPYKlienta          -- wartość do zrankowania: zeszłoroczna sprzedaż TEGO klienta
+    )
+```
+
 **Ograniczenie, które rozwiązuje `RANK` (sekcja 3):** `RANKX` sortuje tylko po jednym `<Expression>` — remisy w tej jednej wartości nie mają wbudowanego, prostego sposobu rozstrzygnięcia drugą kolumną (np. alfabetycznie). Da się to obejść, ale wymaga sztucznego "podbicia" wartości drugą kolumną (np. dodanie znikomego ułamka zależnego od ID), co SQLBI opisuje jako poprawne, ale nieintuicyjne i czasochłonne do napisania poprawnie.
 
 ---
