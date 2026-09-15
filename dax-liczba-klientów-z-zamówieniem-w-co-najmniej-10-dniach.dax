@@ -1,0 +1,8 @@
+Liczba klientów z zamówieniem w co najmniej 10 dniach =
+VAR _tbl =
+    ADDCOLUMNS (
+        VALUES ( dim_Klienci[customerkey] ),
+        "Dni", CALCULATE ( DISTINCTCOUNT ( fact_Sprzedaz[orderdatekey] ) )
+    )
+RETURN
+    COUNTROWS ( FILTER ( _tbl, [Dni] > 6 ) )
