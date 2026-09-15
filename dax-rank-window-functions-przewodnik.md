@@ -52,6 +52,8 @@ RANKX ( <Table>, <Expression> [, <Value>] [, <Order>] [, <Ties>] )
 | `<Order>` | Nie | `0`/`FALSE`/`DESC` (domyślnie) = malejąco, ranga 1 dla najwyższej wartości. `1`/`TRUE`/`ASC` = rosnąco |
 | `<Ties>` | Nie | `SKIP` (domyślnie) — po remisie 5 wartości na randze 11, następna dostaje 16 (11+5, "przeskakuje" zajęte pozycje). `DENSE` — następna dostaje 12 (bez przerwy w numeracji) |
 
+**UWAGA - wybierając ALLSELECTED(tabela[kolumna]) zamiast ALL(tabela) jako argument tabeli zezwalamy na rankingowanie w aktualnym kontekście, np. dodając do wierszy [ID_Klienta] oraz [Segment] przy ALLSELECTED(dim_Klienci[ID_Klienta]) każdy z rankingów (RANKX, RANK oraz RANK z Partition by) policzy ranking dla klienta w obrębie segmentu**
+
 **Przykład — ranking klientów wg sprzedaży:**
 
 ```dax
@@ -129,13 +131,13 @@ RANK (
 
 Dwaj producenci z identyczną sprzedażą dostają różne rangi rozstrzygnięte alfabetycznie po nazwie — jedna linia kodu, bez sztuczek.
 
-**Przykład — ranking klienta w obrębie jego segmentu (partycjonowanie):**
+**Przykład — ranking klienta w obrębie jego segmentu (partycjonowanie), jeśli chcemy dodać partycjonowanie to należy uwzględnić tę kolumnę w ALL/ALLSELECTED:**
 
 ```dax
 Ranking Klienta W Segmencie =
 RANK (
     SKIP,
-    ALLSELECTED ( dim_Klienci[ID_Klienta] ),
+    ALLSELECTED ( dim_Klienci[ID_Klienta],dim_Klienci[Segment] ),
     ORDERBY ( [Sprzedaz Total], DESC ),
     ,
     PARTITIONBY ( dim_Klienci[Segment] )
