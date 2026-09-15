@@ -1,0 +1,65 @@
+Liczba oddziałów w promieniu 1 km =
+/*
+SCENARIUSZ:
+    Dla aktualnie wybranego oddziału oblicza liczbę INNYCH oddziałów, których odległość geograficzna od bieżącego oddziału wynosi <= 1 km.
+
+WYMAGANIA WSTĘPNE:
+    1. dim_Oddziały musi mieć 1 wiersz = 1 oddział.
+    2. nazwa_oddziału musi jednoznacznie identyfikować oddział.
+    3. szerokość_geograficzna oraz długość_geograficzna muszą być zapisane jako liczby dziesiętne w stopniach.
+    4. Miara jest przeznaczona do kontekstu pojedynczego oddziału.
+    5. Odległość jest liczona wzorem Haversine.
+    6. Wynik oznacza odległość "w linii prostej", a nie dystans drogowy.
+
+WYDAJNOŚĆ:
+    - Iterujemy tylko po tabeli oddziałów.
+    - Do obliczeń wykorzystujemy tylko niezbędne kolumny.
+    - Punkt referencyjny jest obliczany tylko raz.
+*/
+
+VAR Lat1 =
+    SELECTEDVALUE ( dim_Oddziały[szerokość_geograficzna] )
+VAR Lon1 =
+    SELECTEDVALUE ( dim_Oddziały[długość_geograficzna] )
+VAR Oddzial =
+    SELECTEDVALUE ( dim_Oddziały[nazwa_oddziału] )
+VAR Lat1Rad =
+    RADIANS ( Lat1 )
+VAR Lon1Rad =
+    RADIANS ( Lon1 )
+VAR PozostaleOddzialy =
+    FILTER (
+        ALL ( dim_Oddziały ),
+        dim_Oddziały[nazwa_oddziału] <> Oddzial
+    )
+
+VAR Odleglosci =
+    ADDCOLUMNS (
+        PozostaleOddzialy,
+        "@DistanceKm",
+            VAR Lat2Rad =
+                RADIANS ( dim_Oddziały[szerokość_geograficzna] )
+            VAR Lon2Rad =
+                RADIANS ( dim_Oddziały[długość_geograficzna] )
+            VAR DLat =
+                Lat2Rad - Lat1Rad
+            VAR DLon =
+                Lon2Rad - Lon1Rad
+            VAR A =
+                POWER ( SIN ( DLat / 2 ), 2 )
+                    + COS ( Lat1Rad )
+                    * COS ( Lat2Rad )
+                    * POWER ( SIN ( DLon / 2 ), 2 )
+            RETURN
+                6371
+                    * 2
+                    * ASIN ( SQRT ( A ) )
+    )
+
+RETURN
+    COUNTROWS (
+        FILTER (
+            Odleglosci,
+            [@DistanceKm] <= 1
+        )
+    )
