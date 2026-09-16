@@ -12,11 +12,11 @@ ZASADA DZIAŁANIA I ZABEZPIECZENIA:
     3. Pętla skumulowana: Sprawdza warunek zamykający próg (poprzednik < ProcentZeSlicera).
 ========================================================================================
 */
-// 1. Odczytanie wartości ze slicera (Domyślnie 80% = 0.80)
+
 VAR ProcentZeSlicera = 
     SELECTEDVALUE ( 'Parametr Próg Pareto'[Parametr Próg Pareto], 0.80 )
 
-// 2. Całkowita sprzedaż aktywnych klientów w kontekście
+
 VAR CałkowitaSprzedaż = 
     CALCULATE (
         [Total Sales],
@@ -25,14 +25,12 @@ VAR CałkowitaSprzedaż =
 
 VAR PrógKwotowy = CałkowitaSprzedaż * ProcentZeSlicera
 
-// 3. Tabela robocza wyłącznie z aktywnymi klientami (Sprzedaż > 0)
 VAR AktywniKlienci = 
     FILTER (
         ALLSELECTED ( dim_Klienci[id_klienta] ),
         [Total Sales] > 0
     )
 
-// 4. Kalkulacja skumulowanej sprzedaży (Running Total) w pamięci RAM
 VAR TabelaZeSkumulowaną = 
     ADDCOLUMNS (
         AktywniKlienci,
@@ -50,7 +48,6 @@ VAR TabelaZeSkumulowaną =
             )
     )
 
-// 5. Filtrowanie klientów budujących zadany próg %
 VAR KlienciTworzącyPróg = 
     FILTER (
         TabelaZeSkumulowaną,
