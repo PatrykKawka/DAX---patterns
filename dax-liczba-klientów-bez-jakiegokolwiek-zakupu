@@ -1,0 +1,32 @@
+Liczba klientów bez jakiegokolwiek zakupu = 
+/*
+SCENARIUSZ:
+    Oblicza liczbę klientów z dim_Klienci, którzy nie dokonali ŻADNEGO zakupu 
+    w bieżącym kontekście filtrowania (np. w wybranym okresie, regionie).
+
+WYMAGANIA WSTĘPNE:
+    1. dim_Klienci musi posiadać klucz główny id_klienta (1 wiersz = 1 unikalny klient).
+    2. Model danych musi posiadać poprawną relację 1:N między dim_Klienci a fact_Sprzedaz.
+
+WYDAJNOŚĆ:
+    - ISEMPTY działa nieporównywalnie szybciej niż COUNTROWS(fact_Sprzedaz) = 0, ponieważ silnik VertiPaq kończy weryfikację natychmiast po znalezieniu pierwszego powiązanego wiersza.
+    - FILTER po tabeli wymiaru z wykorzystaniem przejścia kontekstu (Context Transition)
+      sprawdza tylko unikalne klucze klientów w pamięci RAM.
+*/
+
+// 1. Wyznaczenie bazy klientów w bieżącym kontekście (np. z wybranego miasta)
+VAR KlienciWKontekście = 
+    CALCULATETABLE (
+        VALUES ( dim_Klienci[id_klienta] ),
+        ALLSELECTED ( dim_Klienci )
+    )
+
+// 2. Filtrowanie klientów, dla których tabela faktów jest całkowicie pusta
+VAR KlienciBezZakupów = 
+    FILTER (
+        KlienciWKontekście,
+        CALCULATE ( ISEMPTY ( fact_Sprzedaz ) )
+    )
+
+RETURN
+    COUNTROWS ( KlienciBezZakupów )
