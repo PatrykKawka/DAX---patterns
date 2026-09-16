@@ -12,7 +12,6 @@ WYDAJNOŚĆ:
     - ROUNDUP zabezpiecza prawidłowe zaokrąglenie progu procentowego w górę.
 */
 
-// 1. Zabezpieczenie przed wierszem podsumowania (Total)
 IF (
     NOT ISINSCOPE ( dim_Klienci[customerkey] ),
     BLANK (),
