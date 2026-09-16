@@ -1,0 +1,36 @@
+Liczba klientow bez zakupu wybranego produktu = 
+/*
+SCENARIUSZ:
+    Oblicza liczbę klientow z dim_Klienci, ktorzy w bieżącym kontekscie 
+    filtrowania (np. wybranego roku, miasta czy kategorii) nigdy nie zakupili 
+    wybranego produktu/produktow.
+
+WYMAGANIA WSTĘPNE:
+    1. dim_Klienci musi posiadać klucz głowny customerkey (1 wiersz = 1 unikalny klient).
+    2. Model danych musi posiadać poprawną relację 1:N między dim_Klienci a fact_Sprzedaz.
+    3. Model danych musi posiadać poprawną relację 1:N między dim_Produkt a fact_Sprzedaz.
+
+WYDAJNOsĆ:
+    - CALCULATETABLE z kluczem klienta wyznacza w pamięci RAM wyłącznie unikalną listę kupujących.
+    - EXCEPT (rożnica zbiorow) operuje wyłącznie na pojedynczej kolumnie kluczy, eliminując złożone filtrowanie tabeli faktow.
+*/
+
+// 1. Unikalna lista klientow biorących udział w analizowanym kontekscie (np. z wybranego miasta)
+VAR WszystkieKlienciWKontekscie = 
+    CALCULATETABLE (
+        VALUES ( dim_Klienci[customerkey] ),
+        ALLSELECTED ( dim_Klienci[customerkey] )
+    )
+
+// 2. Wyznaczenie klientow, ktorzy kupili dany produkt w bieżącym kontekscie
+VAR KlienciKtorzyKupili = 
+    CALCULATETABLE (
+        VALUES ( fact_Sprzedaz[customerkey] )
+    )
+
+// 3. Wyznaczenie rożnicy zbiorow (Klienci ogołem MINUS Klienci, ktorzy kupili)
+VAR KlienciBezZakupu = 
+    EXCEPT ( WszystkieKlienciWKontekscie, KlienciKtorzyKupili )
+
+RETURN
+    COUNTROWS ( KlienciBezZakupu )
