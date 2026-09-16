@@ -1,0 +1,35 @@
+Czas w formacie HH:mm = 
+/*
+========================================================================================
+OPIS MIARY:
+    Konwertuje czas trwania w minutach ([Czas trwania]) na ciąg tekstowy w formacie "HH:mm".
+    Obsługuje wartości dodatnie, ujemne (np. "-02:15") oraz braki danych (BLANK).
+
+LOGIKA I OBSŁUGA WYJĄTKÓW:
+    1. ISBLANK: Zwraca BLANK(), jeśli miara bazowa nie posiada wartości.
+    2. ABS: Odcina znak przed dzieleniem, aby funkcja MOD i formatowanie 
+       operowały na liczbach dodatnich.
+    3. Znak ujemny: W przypadku wartości < 0, prefiks "-" jest dodawany na początku.
+    4. IF vs FORMAT: Zastosowanie instrukcji IF zamiast funkcji FORMAT redukuje narzut 
+       silnika Formula Engine (FE), zapewniając wyższą wydajność.
+========================================================================================
+*/
+VAR CzasRaw = [Czas trwania]
+
+RETURN
+    IF (
+        ISBLANK ( CzasRaw ),
+        BLANK (),
+        
+        VAR Znak = IF ( CzasRaw < 0, "-", "" )
+        VAR TotalMinutesRounded = ROUND ( ABS ( CzasRaw ), 0 )
+        
+        VAR Godziny = INT ( DIVIDE ( TotalMinutesRounded, 60 ) )
+        VAR Minuty = INT ( MOD ( TotalMinutesRounded, 60 ) )
+        
+        VAR GodzinyText = IF ( Godziny < 10, "0" & Godziny, Godziny & "" )
+        VAR MinutyText = IF ( Minuty < 10, "0" & Minuty, Minuty & "" )
+        
+        RETURN
+            Znak & GodzinyText & ":" & MinutyText
+    )
