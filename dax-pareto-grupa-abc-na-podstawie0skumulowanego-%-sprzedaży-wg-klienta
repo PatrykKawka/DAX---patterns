@@ -1,0 +1,17 @@
+PARETO Grupa ABC = 
+/*
+========================================================================================
+OPIS MIARY:
+    Przypisuje klienta do grupy A, B lub C na podstawie jego punktu na krzywej Pareto.
+========================================================================================
+*/
+VAR SkumulowanyProcent = [PARETO Skumulowany % sprzedazy]
+
+RETURN
+    SWITCH (
+        TRUE (),
+        ISBLANK ( SkumulowanyProcent ), BLANK (),
+        SkumulowanyProcent <= 0.2, "Klasa A (TOP 20%)",
+        SkumulowanyProcent <= 0.5, "Klasa B (21-50%)",
+        "Klasa C (51-100%)"
+    )
