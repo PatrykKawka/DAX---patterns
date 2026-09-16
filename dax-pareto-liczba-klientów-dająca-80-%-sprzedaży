@@ -1,0 +1,54 @@
+PARETO Liczba klientow dla 80% sprzedazy = 
+/*
+========================================================================================
+OPIS MIARY:
+    Wyznacza minimalna liczbę czolowych klientow (z największa sprzedaza), 
+    ktorzy lacznie generuja skumulowanie co najmniej 80% calkowitej sprzedazy.
+
+WYDAJNOŚĆ I ARCHITEKTURA (BEST PRACTICES):
+    1. ALLSELECTED: Uwzględnia zewnętrzne filtry na raporcie (np. wybrane miasto/kategoria).
+    2. ADDCOLUMNS + WINDOW: Oblicza skumulowana sprzedaz narastajaco w pamięci RAM, 
+       unikajac powolnych pętli FILTER/RANKX.
+    3. FILTER + COUNTROWS: Zlicza tylko te wiersze z tabeli skumulowanej, ktore znajduja się
+       ponizej lub dokladnie na progu 80% wartości calkowitej (+1 dla domknięcia warunku).
+========================================================================================
+*/
+VAR CalkowitaSprzedaz = 
+    CALCULATE (
+        [Total Sales],
+        ALLSELECTED ( dim_Klienci[customerkey] )
+    )
+
+VAR Prog80 = CalkowitaSprzedaz * 0.80
+
+VAR TabelaKlienciZeSkumulowana = 
+    ADDCOLUMNS (
+        ALLSELECTED ( dim_Klienci[customerkey] ),
+        "@SkumulowanaSprzedaz",
+            CALCULATE (
+                [Total Sales],
+                WINDOW (
+                    1, ABS,
+                    0, REL,
+                    ALLSELECTED ( dim_Klienci[customerkey] ),
+                    ORDERBY ( [Total Sales], DESC ),
+                    ,
+                    MATCHBY ( dim_Klienci[customerkey] )
+                )
+            )
+    )
+
+// 4. Przefiltrowanie tabeli do wierszy, gdzie poprzednik nie przekroczyl jeszcze 80%
+VAR KlienciDoProgu = 
+    FILTER (
+        TabelaKlienciZeSkumulowana,
+        [@SkumulowanaSprzedaz] - [Total Sales] < Prog80
+    )
+
+RETURN
+
+    IF (
+        ISBLANK ( CalkowitaSprzedaz ) || CalkowitaSprzedaz = 0,
+        BLANK (),
+        COUNTROWS ( KlienciDoProgu )
+    )
