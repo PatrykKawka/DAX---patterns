@@ -1,0 +1,34 @@
+PARETO Skumulowana sprzedaz = 
+/*
+========================================================================================
+OPIS MIARY:
+    Oblicza skumulowaną wartość sprzedaży (running total) dla klientów posortowanych 
+    malejąco wg miary [Total Sales].
+
+WYDAJNOŚĆ I ARCHITEKTURA:
+    1. Zastosowanie funkcji okna WINDOW pozwala wyznaczyć zakres od pierwszego klienta 
+       do bieżącego w jednym przejściu Storage Engine (VertiPaq).
+    2. ORDERBY([Total Sales], DESC) eliminuje iterowanie po tabeli za pomocą RANKX/FILTER.
+========================================================================================
+*/
+IF (
+
+    NOT ISINSCOPE ( dim_Klienci[customerkey] ),
+    BLANK (),
+    
+    // 2. Wyszukanie skumulowanej sprzedaży za pomocą funkcji okna
+    VAR TabelaKlienci = ALLSELECTED ( dim_Klienci[customerkey] )
+    
+    RETURN
+        CALCULATE (
+            [Total Sales],
+            WINDOW (
+                1, ABS,
+                0, REL,
+                TabelaKlienci,
+                ORDERBY ( [Total Sales], DESC ),
+                ,
+                MATCHBY ( dim_Klienci[customerkey] )
+            )
+        )
+)
