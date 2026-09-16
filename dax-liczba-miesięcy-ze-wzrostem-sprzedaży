@@ -1,0 +1,39 @@
+Months With MoM Sales Growth = 
+/*
+========================================================================================
+OPIS: 
+    Liczba miesięcy w wybranym okresie/kontekście, w których dany oddział odnotował 
+    wzrost sprzedaży w stosunku do bezpośrednio poprzedzającego go miesiąca (MoM Growth > 0). Nie uwzględniamy miesięcy z brakiem sprzedaży.
+
+POPRAWKA:
+    1. Pobieranie unikalnych wartości YearMonth bezpośrednio z dim_Kalendarz.
+    2. CALCULATETABLE zapewnia, że iterujemy TYLKO po miesiącach, w których dany
+       oddział miał realną sprzedaż (dzięki kontekstowi z fact_Sprzedaz).
+========================================================================================
+*/
+VAR MonthsForCurrentBranch = 
+    // Pobieramy miesiące z wymiaru dat z uwzględnieniem sprzedaży danego oddziału
+    CALCULATETABLE (
+        VALUES ( dim_Kalendarz[yearmonth] ),
+        fact_Sprzedaz
+    )
+
+VAR MonthsWithGrowth = 
+    FILTER (
+        MonthsForCurrentBranch,
+        VAR CurrentMonthSales = [Total Sales]
+        
+        VAR PreviousMonthSales = 
+            CALCULATE (
+                [Total Sales],
+                DATEADD ( dim_Kalendarz[date], -1, MONTH )
+            )
+            
+        RETURN
+            NOT ISBLANK ( PreviousMonthSales ) 
+                && NOT ISBLANK ( CurrentMonthSales )
+                && CurrentMonthSales > PreviousMonthSales
+    )
+
+RETURN
+    COUNTROWS ( MonthsWithGrowth )
