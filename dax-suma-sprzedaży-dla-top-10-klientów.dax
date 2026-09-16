@@ -1,3 +1,4 @@
+Suma sprzedaży dla TOP 10 klientów  = 
 /*
 SCENARIUSZ:
     Oblicza sumę wartości sprzedaży [Total Sales] wygenerowaną wyłącznie przez TOP 10 klientów o największej wartości zakupów w aktualnym kontekście filtrowania.
@@ -12,7 +13,7 @@ WYDAJNOŚĆ:
     - Użycie ALLSELECTED eliminuje niepotrzebne skanowanie pełnej tabeli faktów i ogranicza zakres do aktywnego filtra. VALUES zadziała na karcie ale np. w tabeli pokaże sprzedaż dla wszystkich klientów.
     - KEEPFILTERS zapobiega nadpisywaniu kontekstu wiersza i ogranicza kalkulację w wizualizacjach.
 */
-[Suma sprzedaży dla TOP 10 klientów ] = 
+
 VAR Top10Customers = 
     TOPN (
         10,
