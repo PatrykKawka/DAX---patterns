@@ -1,0 +1,43 @@
+Stan magazynowy na koniec okresu = 
+/*
+SCENARIUSZ:
+    Oblicza stan magazynowy na koniec wybranego okresu (tzw. Carry-forward Snapshot).
+    Pobiera wartosć z ostatniego znanego dnia zmiany stanu (<= koniec okresu w kontekscie).
+    
+    UWAGA DOTYCZĄCA ZASTOSOWANIA:
+    Jesli Twoja tabela faktów zawiera regularne, pełne migawki dzienne/miesięczne dla każdego
+    produktu, wyznaczanie historycznej daty za pomocą REMOVEFILTERS jest zbędne – w takim wypadku
+    wystarczy prosta funkcja LASTNONBLANK / MAX bezposrednio w aktualnym kontekscie.
+
+WYMAGANIA WSTĘPNE:
+    1. Tabela kalendarza dim_Kalendarz połączona relacją (1:N) z fact_StanyMagazynowe[data].
+    2. Tabela dim_Produkt połączona relacją (1:N) z fact_StanyMagazynowe.
+
+WYDAJNOsĆ:
+    - Wykorzystuje natywną funkcję MAX operującą na silniku Storage Engine (VertiPaq).
+    - Większosć operacji filtrowania i agregacji jest przekazywana bezposrednio do Storage Engine,
+      co minimalizuje obciążenie Formula Engine w porównaniu do iteracyjnych funkcji typu LASTNONBLANK.
+*/
+
+VAR OstatniDzienWKontekscie = MAX ( dim_Kalendarz[datekey] )
+
+RETURN
+    IF (
+        NOT ISBLANK ( OstatniDzienWKontekscie ),
+        VAR OstatniaDataZmiany = 
+            CALCULATE (
+                MAX ( fact_StanyMagazynowe[datekey] ),
+                fact_StanyMagazynowe[datekey] <= OstatniDzienWKontekscie,
+                REMOVEFILTERS ( dim_Kalendarz )
+            )
+            
+        RETURN
+            IF (
+                NOT ISBLANK ( OstatniaDataZmiany ),
+                CALCULATE (
+                    SUM ( fact_StanyMagazynowe[stockquantity] ),
+                    fact_StanyMagazynowe[datekey] = OstatniaDataZmiany,
+                    REMOVEFILTERS ( dim_Kalendarz )
+                )
+            )
+    )
