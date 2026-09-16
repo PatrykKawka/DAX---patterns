@@ -1,0 +1,30 @@
+% Sales Share of Parent = 
+/*
+========================================================================================
+OPIS: Oblicza procentowy udzial sprzedazy biezacego elementu w stosunku do jego 
+      bezposredniego rodzica w hierarchii (np. Produkt w Podkategorii, Podkategoria w Kategorii).
+========================================================================================
+*/
+VAR CurrentSales = [Total Sales]
+
+// Pobranie sprzedazy dla odpowiedniego poziomu rodzica
+VAR ParentSales = 
+    SWITCH (
+        TRUE (),
+        // Poziom 3: Produkt -> pobierz sprzedaz całej Podkategorii
+        ISINSCOPE ( dim_Produkt[nazwa_produktu] ), 
+            CALCULATE ( [Total Sales], ALL ( dim_Produkt[nazwa_produktu] ) ),
+            
+        // Poziom 2: Podkategoria -> pobierz sprzedaz całej Kategorii
+        ISINSCOPE ( dim_Produkt[podkategoria] ), 
+            CALCULATE ( [Total Sales], ALL ( dim_Produkt[podkategoria] ) ),
+            
+        // Poziom 1: Kategoria -> pobierz sprzedaz Całości (Suma ogólna)
+        ISINSCOPE ( dim_Produkt[kategoria] ), 
+            CALCULATE ( [Total Sales], ALL ( dim_Produkt[kategoria] ) ),
+            
+        [Total Sales]
+    )
+
+RETURN
+    DIVIDE ( CurrentSales, ParentSales, BLANK () )
