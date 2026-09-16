@@ -1,0 +1,37 @@
+PARETO Skumulowany % sprzedazy = 
+/*
+========================================================================================
+OPIS MIARY:
+    Dzieli skumulowaną sprzedaz Pareto przez calkowitą sprzedaz wszystkich klientów 
+    w aktualnym kontekście filtrowania.
+========================================================================================
+*/
+IF (
+    NOT ISINSCOPE ( dim_Klienci[customerkey] ),
+    BLANK (),
+    
+    VAR CzasowaTabela = ALLSELECTED ( dim_Klienci[customerkey] )
+    
+    VAR Skumulowana = 
+        CALCULATE (
+            [Total Sales],
+            WINDOW (
+                1, ABS,
+                0, REL,
+                CzasowaTabela,
+                ORDERBY ( [Total Sales], DESC, dim_Klienci[customerkey], ASC ),
+                KEEP,
+                MATCHBY ( dim_Klienci[customerkey] )
+            )
+        )
+        
+    VAR Calkowita = 
+        CALCULATE (
+            [Total Sales],
+            CzasowaTabela
+        )
+
+    RETURN
+        // Zabezpieczenie przed przekroczeniem 1 (100%) wynikającym z zaokrągleń float
+        MIN ( 1, DIVIDE ( Skumulowana, Calkowita ) )
+)
