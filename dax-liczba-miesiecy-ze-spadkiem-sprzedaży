@@ -1,0 +1,43 @@
+Months With MoM Sales Drop = 
+/*
+========================================================================================
+OPIS: 
+    Liczba miesięcy w wybranym okresie/kontekście, w których dany oddział odnotował 
+    spadek sprzedaży w stosunku do poprzedniego miesiąca (MoM Drop < 0).
+    
+ZASADY PRZELICZANIA:
+    - Brak sprzedaży (BLANK / 0) w którymkolwiek z dwóch analizowanych miesięcy 
+      NIE JEST traktowany jako spadek.
+    - Analizowane są wyłącznie miesiące, w których wystąpiła aktywna sprzedaż po obu stronach.
+========================================================================================
+*/
+VAR MonthsForCurrentBranch = 
+    // Pobieramy unikalne miesiące z kalendarza z uwzględnieniem aktywnej sprzedaży oddziału
+    CALCULATETABLE (
+        VALUES ( dim_Kalendarz[yearmonth] ),
+        fact_Sprzedaz
+    )
+
+VAR MonthsWithDrop = 
+    FILTER (
+        MonthsForCurrentBranch,
+        VAR CurrentMonthSales = [Total Sales]
+        
+        VAR PreviousMonthSales = 
+            CALCULATE (
+                [Total Sales],
+                DATEADD ( dim_Kalendarz[date], -1, MONTH )
+            )
+            
+        RETURN
+            // Wymagamy obecności danych po obu stronach (eliminujemy braki sprzedaży)
+            NOT ISBLANK ( CurrentMonthSales ) 
+                && CurrentMonthSales > 0
+                && NOT ISBLANK ( PreviousMonthSales ) 
+                && PreviousMonthSales > 0
+                // Zwracamy TRUE tylko wtedy, gdy nastąpił spadek
+                && CurrentMonthSales < PreviousMonthSales
+    )
+
+RETURN
+    COUNTROWS ( MonthsWithDrop )
