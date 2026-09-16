@@ -1,0 +1,13 @@
+/*
+SCENARIUSZ:
+    Sprawdzenie w tabeli z produktami, czy dany produkt ani razu nie sprzedał się w wybranym sklepie.
+*/
+Liczba produktów bez sprzedaży = 
+VAR WszystkieProdukty = ALLSELECTED ( dim_Produkt[id_produkt] )
+RETURN
+    COUNTROWS (
+        FILTER (
+            WszystkieProdukty,
+            CALCULATE ( ISEMPTY ( fact_Sprzedaz ) )
+        )
+    )
