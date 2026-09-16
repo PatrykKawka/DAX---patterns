@@ -1,40 +1,51 @@
-Odległość do najbliższego oddziału =
+Odległość do najbliższego oddziału = 
 /*
 SCENARIUSZ:
-    Zwraca odległość w km od aktualnego oddziałudo najbliższego INNEGO oddziału.
+    Zwraca odległość w km od aktualnego oddziału do najbliższego INNEGO oddziału w bieżącym kontekście filtrowania.
 
 WYMAGANIA WSTĘPNE:
-    1. 1 wiersz w dim_Oddziały = 1 oddział.
-    2. Każdy analizowany oddział posiada współrzędne.
-    3. Miara działa w kontekście pojedynczego oddziału.
-    4. Odległość liczona jest wzorem Haversine.
-    5. Wynik jest odległością w linii prostej.
-    
+    1. dim_Oddziały musi mieć 1 wiersz = 1 oddział.
+    2. nazwa_oddziału musi jednoznacznie identyfikować oddział.
+    3. szerokość_geograficzna oraz długość_geograficzna muszą być zapisane jako liczby dziesiętne w stopniach.
+    4. Miara jest przeznaczona do kontekstu pojedynczego oddziału.
+    5. Odległość jest liczona wzorem Haversine w linii prostej.
+
 WYDAJNOŚĆ:
-    - MINX znajduje minimum bez potrzeby sortowania tabeli.
-    - Nie używamy TOPN, ponieważ interesuje nas tylko wartość minimalnej odległości.
+    - MINX znajduje wartość minimalną bez potrzeby sortowania tabeli i tworzenia kolumn tymczasowych.
+    - Zastosowanie ALLSELECTED uwzględnia aktywne filtry na raporcie.
+    - Wczesne sprawdzenie ISBLANK zapobiega wyliczaniu tabeli dla agregacji zbiorczych (Total).
 */
 
-VAR Lat1 =  SELECTEDVALUE ( dim_Oddziały[szerokość_geograficzna] )
-VAR Lon1 =  SELECTEDVALUE ( dim_Oddziały[długość_geograficzna] )
-VAR Oddzial =  SELECTEDVALUE ( dim_Oddziały[nazwa_oddziału] )
-VAR Lat1Rad =  RADIANS ( Lat1 )
-VAR Lon1Rad = RADIANS ( Lon1 )
-VAR PozostaleOddzialy =
-    FILTER (
-        ALL ( dim_Oddziały ),
-        dim_Oddziały[nazwa_oddziału] <> Oddzial
-    )
+VAR SzerokośćReferencyjna = SELECTEDVALUE ( dim_Oddziały[szerokość_geograficzna] )
+VAR DługośćReferencyjna = SELECTEDVALUE ( dim_Oddziały[długość_geograficzna] )
+VAR NazwaReferencyjna = SELECTEDVALUE ( dim_Oddziały[nazwa_oddziału] )
 
 RETURN
-    MINX (
-        PozostaleOddzialy,
-        VAR Lat2Rad =  RADIANS ( dim_Oddziały[szerokość_geograficzna] )
-        VAR Lon2Rad =   RADIANS ( dim_Oddziały[długość_geograficzna] )
-        VAR DLat = Lat2Rad - Lat1Rad
-        VAR DLon = Lon2Rad - Lon1Rad
-        VAR A =  POWER ( SIN ( DLat / 2 ), 2 )  + COS ( Lat1Rad )  * COS ( Lat2Rad )  * POWER ( SIN ( DLon / 2 ), 2 )
+    // Zabezpieczenie: wykonuj kalkulację tylko gdy wybrano dokładnie 1 oddział referencyjny
+    IF (
+        ISBLANK ( SzerokośćReferencyjna ) || ISBLANK ( DługośćReferencyjna ),
+        BLANK (),
+        VAR SzerokośćRad1 = RADIANS ( SzerokośćReferencyjna )
+        VAR DługośćRad1 = RADIANS ( DługośćReferencyjna )
+        
+        VAR PozostałeOddziały = 
+            FILTER (
+                ALLSELECTED ( dim_Oddziały ),
+                dim_Oddziały[nazwa_oddziału] <> NazwaReferencyjna
+            )
 
         RETURN
-            6371  * 2 * ASIN ( SQRT ( A ) )
+            MINX (
+                PozostałeOddziały,
+                VAR SzerokośćRad2 = RADIANS ( dim_Oddziały[szerokość_geograficzna] )
+                VAR DługośćRad2 = RADIANS ( dim_Oddziały[długość_geograficzna] )
+                VAR RóżnicaSzerokości = SzerokośćRad2 - SzerokośćRad1
+                VAR RóżnicaDługości = DługośćRad2 - DługośćRad1
+                VAR A = 
+                    POWER ( SIN ( RóżnicaSzerokości / 2 ), 2 ) 
+                    + COS ( SzerokośćRad1 ) * COS ( SzerokośćRad2 ) * POWER ( SIN ( RóżnicaDługości / 2 ), 2 )
+                
+                RETURN
+                    6371 * 2 * ASIN ( SQRT ( A ) )
+            )
     )
