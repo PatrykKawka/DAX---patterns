@@ -1,0 +1,75 @@
+% Sprzedaży dla TOP % Klientów = 
+/*
+========================================================================================
+OPIS MIARY:
+    Wyznacza jaki % całkowitej sprzedaży jest generowany przez podany % TOP klientów.
+    
+LOGIKA DZIAŁANIA:
+    1. Filtruje tylko aktywnych klientów ([Total Sales] > 0).
+    2. Pobiera wyznaczony % z Disconnected Table (z kontekstu wiersza lub ze slicera).
+    3. Oblicza ilu dokładnie klientów odpowiada danej wartości procentowej (zaokrąglając w górę).
+    4. Wyznacza sumę sprzedaży generowaną przez tę grupę (TOPN).
+    5. Dzieli wynik przez całkowitą sprzedaż wszystkich aktywnych klientów.
+========================================================================================
+*/
+VAR AktywniKlienci = 
+    FILTER (
+        ALLSELECTED ( dim_Klienci[id_klienta] ),
+        [Total Sales] > 0
+    )
+VAR LiczbaAktywnychKlientów = 
+    COUNTROWS ( AktywniKlienci )
+
+VAR CałkowitaSprzedaż = 
+    CALCULATE (
+        [Total Sales],
+        AktywniKlienci
+    )
+
+VAR WybranyPrógProcentowy = 
+    SELECTEDVALUE ( 'Tabela Progi % Klientów'[PrógKlientów], 0.10 )
+
+VAR LiczbaDocelowaKlientów = 
+    CEILING ( LiczbaAktywnychKlientów * WybranyPrógProcentowy, 1 )
+
+VAR SprzedażTopKlientów = 
+    CALCULATE (
+        [Total Sales],
+        TOPN (
+            LiczbaDocelowaKlientów,
+            AktywniKlienci,
+            [Total Sales],
+            DESC,
+            dim_Klienci[id_klienta],
+            ASC
+        )
+    )
+
+RETURN
+    IF (
+        ISBLANK ( CałkowitaSprzedaż ) || CałkowitaSprzedaż = 0,
+        BLANK (),
+        DIVIDE ( SprzedażTopKlientów, CałkowitaSprzedaż )
+    )
+
+
+/*
+  Tabela Progi % Klientów = 
+DATATABLE (
+    "Etykieta", STRING,
+    "PrógKlientów", DOUBLE,
+    "Kolejność", INTEGER,
+    {
+        { "TOP 10% Klientów", 0.10, 1 },
+        { "TOP 20% Klientów", 0.20, 2 },
+        { "TOP 30% Klientów", 0.30, 3 },
+        { "TOP 40% Klientów", 0.40, 4 },
+        { "TOP 50% Klientów", 0.50, 5 },
+        { "TOP 60% Klientów", 0.60, 6 },
+        { "TOP 70% Klientów", 0.70, 7 },
+        { "TOP 80% Klientów", 0.80, 8 },
+        { "TOP 90% Klientów", 0.90, 9 },
+        { "100% Klientów",    1.00, 10 }
+    }
+)
+  */
