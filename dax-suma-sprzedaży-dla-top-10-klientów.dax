@@ -1,0 +1,28 @@
+/*
+SCENARIUSZ:
+    Oblicza sumę wartości sprzedaży [Total Sales] wygenerowaną wyłącznie przez TOP 10 klientów o największej wartości zakupów w aktualnym kontekście filtrowania.
+
+WYMAGANIA WSTĘPNE:
+    1. dim_Klienci musi posiadać klucz główny id_klienta (1 wiersz = 1 unikalny klient).
+    2. W modelu musi istnieć miara bazowa [Total Sales] obliczająca sumę sprzedaży.
+    3. Relacja pomiędzy dim_Klienci a fact_Sprzedaz musi być oparta na kolumnie id_klienta (1:N).
+
+WYDAJNOŚĆ:
+    - Wyznaczenie czołowej dziesiątki klientów (TOPN) następuje jednorazowo w zmiennej (RAM).
+    - Użycie ALLSELECTED eliminuje niepotrzebne skanowanie pełnej tabeli faktów i ogranicza zakres do aktywnego filtra. VALUES zadziała na karcie ale np. w tabeli pokaże sprzedaż dla wszystkich klientów.
+    - KEEPFILTERS zapobiega nadpisywaniu kontekstu wiersza i ogranicza kalkulację w wizualizacjach.
+*/
+[Suma sprzedaży dla TOP 10 klientów ] = 
+VAR Top10Customers = 
+    TOPN (
+        10,
+        ALLSELECTED ( dim_Klienci[id_klienta] ),
+        [Total Sales],
+        DESC
+    )
+
+RETURN
+    CALCULATE (
+        [Total Sales],
+        KEEPFILTERS ( Top10Customers )
+    )
