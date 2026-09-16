@@ -1,0 +1,82 @@
+Gini Coefficient = 
+/*
+========================================================================================
+OPIS MIARY:
+    Oblicza Wspolczynnik Giniego (Gini Coefficient) dla sprzedazy w biezacym kontekscie.
+    Mierzy poziom koncentracji i ryzyka portfela klientow (wartosci od 0.0 do 1.0).
+
+INTERPRETACJA BIZNESOWA WYNIKU:
+    - 0.0 - 0.3 ( 0% - 30%) : LOW RISK / NISKIE RYZYKO
+                              Zrownowazony portfel, sprzedaz rozlozona rownomiernie.
+    - 0.3 - 0.5 (30% - 50%) : MODERATE RISK / UMIARKOWANE RYZYKO
+                              Standardowa struktura rynkowa (zgodna z zasada Pareto).
+    - 0.5 - 0.7 (50% - 70%) : HIGH RISK / WYSOKIE RYZYKO
+                              Wysoka koncentracja. Wiekszosc przychodu zalezy od kilku 
+                              kluczowych klientow (Key Accounts).
+    - 0.7 - 1.0 (70% - 100%): CRITICAL RISK / KRYTYCZNE RYZYKO
+                              Ekstremalne uzaleznienie od pojedynczych odbiorcow.
+
+WARTOŚCI SKRAJNE:
+    - Gini = 0: Idealna rownomiernosc (kazdy klient generuje dokladnie ten sam przychod).
+    - Gini = 1: Ekstremalny monopol (1 klient odpowiada za 100% przychodu).
+========================================================================================
+*/
+VAR ActiveCustomers = 
+    FILTER (
+        ALLSELECTED ( dim_Klienci[customerkey] ),
+        [Total Sales] > 0
+    )
+
+VAR N = COUNTROWS ( ActiveCustomers )
+VAR GrandTotalSales = CALCULATE ( [Total Sales], ActiveCustomers )
+
+RETURN
+    IF (
+        ISBLANK ( GrandTotalSales ) || GrandTotalSales = 0 || N <= 1,
+        0,
+        
+        VAR CumulativeTable = 
+            ADDCOLUMNS (
+                ActiveCustomers,
+                
+                "@Position", 
+                    RANKX (
+                        ActiveCustomers,
+                        [Total Sales],
+                        ,
+                        ASC,
+                        Dense
+                    ),
+                
+                "@CumulativeSales",
+                    CALCULATE (
+                        [Total Sales],
+                        WINDOW (
+                            1, ABS,
+                            0, REL,
+                            ActiveCustomers,
+                            ORDERBY ( [Total Sales], ASC, dim_Klienci[customerkey], ASC ),
+                            ,
+                            MATCHBY ( dim_Klienci[customerkey] )
+                        )
+                    )
+            )
+
+        VAR AreaUnderCurve = 
+            SUMX (
+                CumulativeTable,
+                VAR Xi = [@Position] / N
+                VAR Xi_prev = ([@Position] - 1) / N
+                
+                VAR Yi = [@CumulativeSales] / GrandTotalSales
+                VAR Yi_prev = ([@CumulativeSales] - [Total Sales]) / GrandTotalSales
+                
+                RETURN
+                    ( Xi - Xi_prev ) * ( Yi + Yi_prev ) / 2
+            )
+
+        VAR GiniVal = 1 - ( 2 * AreaUnderCurve )
+
+        RETURN
+            MAX ( 0, GiniVal )
+    )
