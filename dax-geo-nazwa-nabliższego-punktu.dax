@@ -1,51 +1,65 @@
-Nazwa najbliższego oddziału =
+Nazwa najbliższego oddziału = 
 /*
 SCENARIUSZ:
-    Zwraca nazwę oddziału znajdującego się najbliżej aktualnie analizowanego oddziału.
+    Zwraca nazwę oddziału znajdującego się najbliżej aktualnie analizowanego oddziału 
+    w bieżącym kontekście filtrowania.
 
 WYMAGANIA WSTĘPNE:
-    1. 1 wiersz = 1 oddział.
-    2. nazwa_oddziału jednoznacznie identyfikuje oddział.
-    3. Współrzędne geograficzne są poprawne.
-    4. Miara jest używana dla pojedynczego oddziału.
+    1. dim_Oddziały musi mieć 1 wiersz = 1 oddział.
+    2. nazwa_oddziału musi jednoznacznie identyfikować oddział.
+    3. szerokość_geograficzna oraz długość_geograficzna muszą być zapisane jako liczby dziesiętne w stopniach.
+    4. Miara jest przeznaczona do kontekstu pojedynczego oddziału.
+    5. Odległość jest liczona wzorem Haversine w linii prostej.
 
 WYDAJNOŚĆ:
-    - TOPN(1) ogranicza wynik do jednego rekordu.
-    - Drugi warunek sortowania zapewnia deterministyczny wynik,
-      jeśli dwa oddziały znajdują się w identycznej odległości.
+    - TOPN(1) ogranicza wynik do jednego rekordu w pamięci RAM.
+    - Drugi warunek sortowania w TOPN zapewnia deterministyczny wynik w przypadku identycznych odległości.
+    - Wczesne sprawdzenie ISBLANK zapobiega wyliczaniu tabeli wiersz po wierszu dla agregacji (Total).
 */
 
-VAR Lat1 =  SELECTEDVALUE ( dim_Oddziały[szerokość_geograficzna] )
-VAR Lon1 = SELECTEDVALUE ( dim_Oddziały[długość_geograficzna] )
-VAR Oddzial =  SELECTEDVALUE ( dim_Oddziały[nazwa_oddziału] )
-VAR Lat1Rad =  RADIANS ( Lat1 )
-VAR Lon1Rad = RADIANS ( Lon1 )
-VAR Odleglosci =
-    ADDCOLUMNS (
-        FILTER (
-            ALL ( dim_Oddziały ),
-            dim_Oddziały[nazwa_oddziału] <> Oddzial
-        ),
-        "@DistanceKm",
-            VAR Lat2Rad =   RADIANS ( dim_Oddziały[szerokość_geograficzna] )
-            VAR Lon2Rad =   RADIANS ( dim_Oddziały[długość_geograficzna] )
-            VAR DLat =  Lat2Rad - Lat1Rad
-            VAR DLon =  Lon2Rad - Lon1Rad
-            VAR A = POWER ( SIN ( DLat / 2 ), 2 )  + COS ( Lat1Rad ) * COS ( Lat2Rad ) * POWER ( SIN ( DLon / 2 ), 2 )
-            RETURN
-                6371 * 2 * ASIN ( SQRT ( A ) )
-    )
-
-VAR Najblizszy =
-    TOPN (
-        1,
-        Odleglosci,
-        [@DistanceKm], ASC,
-        dim_Oddziały[nazwa_oddziału], ASC
-    )
+VAR SzerokośćReferencyjna = SELECTEDVALUE ( dim_Oddziały[szerokość_geograficzna] )
+VAR DługośćReferencyjna = SELECTEDVALUE ( dim_Oddziały[długość_geograficzna] )
+VAR NazwaReferencyjna = SELECTEDVALUE ( dim_Oddziały[nazwa_oddziału] )
 
 RETURN
-    MAXX (
-        Najblizszy,
-        dim_Oddziały[nazwa_oddziału]
+    // Zabezpieczenie: wykonuj kalkulację tylko gdy wybrano dokładnie 1 oddział referencyjny
+    IF (
+        ISBLANK ( SzerokośćReferencyjna ) || ISBLANK ( DługośćReferencyjna ),
+        BLANK (),
+        VAR SzerokośćRad1 = RADIANS ( SzerokośćReferencyjna )
+        VAR DługośćRad1 = RADIANS ( DługośćReferencyjna )
+        
+        // Wyznaczenie odległości do wszystkich pozostałych oddziałów
+        VAR TabelaOdległości = 
+            ADDCOLUMNS (
+                FILTER (
+                    ALLSELECTED ( dim_Oddziały ),
+                    dim_Oddziały[nazwa_oddziału] <> NazwaReferencyjna
+                ),
+                "@DystansKm",
+                    VAR SzerokośćRad2 = RADIANS ( dim_Oddziały[szerokość_geograficzna] )
+                    VAR DługośćRad2 = RADIANS ( dim_Oddziały[długość_geograficzna] )
+                    VAR RóżnicaSzerokości = SzerokośćRad2 - SzerokośćRad1
+                    VAR RóżnicaDługości = DługośćRad2 - DługośćRad1
+                    VAR A = 
+                        POWER ( SIN ( RóżnicaSzerokości / 2 ), 2 ) 
+                        + COS ( SzerokośćRad1 ) * COS ( SzerokośćRad2 ) * POWER ( SIN ( RóżnicaDługości / 2 ), 2 )
+                    RETURN
+                        6371 * 2 * ASIN ( SQRT ( A ) )
+            )
+
+        // Wyciągnięcie dokładnie jednego najbliższego oddziału
+        VAR TabelaNajbliższyOddział = 
+            TOPN (
+                1,
+                TabelaOdległości,
+                [@DystansKm], ASC,
+                dim_Oddziały[nazwa_oddziału], ASC
+            )
+
+        RETURN
+            SELECTCOLUMNS (
+                TabelaNajbliższyOddział,
+                "NazwaOddziału", dim_Oddziały[nazwa_oddziału]
+            )
     )
