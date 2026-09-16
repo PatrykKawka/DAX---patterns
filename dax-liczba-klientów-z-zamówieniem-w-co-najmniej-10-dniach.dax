@@ -5,4 +5,4 @@ VAR _tbl =
         "Dni", CALCULATE ( DISTINCTCOUNT ( fact_Sprzedaz[orderdatekey] ) )
     )
 RETURN
-    COUNTROWS ( FILTER ( _tbl, [Dni] > 6 ) )
+    COUNTROWS ( FILTER ( _tbl, [Dni] >= 10 ) )
