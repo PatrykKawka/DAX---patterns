@@ -1,4 +1,4 @@
-Liczba klientów bez jakiegokolwiek zakupu = 
+Liczba klientów bez zakupu = 
 /*
 SCENARIUSZ:
     Oblicza liczbę klientów z dim_Klienci, którzy nie dokonali ŻADNEGO zakupu 
