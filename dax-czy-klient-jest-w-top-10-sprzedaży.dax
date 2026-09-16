@@ -1,0 +1,30 @@
+Czy klient jest w top 10 sprzedaży = 
+/*
+SCENARIUSZ:
+    Sprawdza, czy produkt widoczny w danym wierszu wizualizacji należy do TOP 10 produktów o największej sprzedaży w aktualnym kontekście filtrowania.
+
+WYMAGANIA WSTĘPNE:
+    1. Tabela dim_Klienci zawiera unikalne identyfikatory produktów (np. id_produkt).
+    2. W modelu istnieje miara bazowa [Total Sales].
+    3. Miara jest używana w wizualizacji z ziarnistością produktu w wierszach.
+
+WYDAJNOŚĆ:
+    - Wyznaczenie tabeli TOPN 10 następuje w pamięci podręcznej (RAM) dla danego kontekstu.
+    - ISINSCOPE zapobiega zwracaniu wyniku w wierszu podsumowania (Total).
+*/
+
+// 1. Zabezpieczenie przed wierszem podsumowania (Total)
+IF (
+    NOT ISINSCOPE ( dim_Klienci[customerkey] ),
+    BLANK (),
+    VAR TabelaTop10Produktow = 
+        TOPN (
+            10,
+            ALLSELECTED ( dim_Klienci[customerkey] ),
+            [Total Sales],
+            DESC
+        )
+    VAR BiezacyProdukt = SELECTEDVALUE ( dim_Klienci[customerkey] )
+    RETURN
+        IF ( BiezacyProdukt IN TabelaTop10Produktow, "Tak", "Nie" )
+)
