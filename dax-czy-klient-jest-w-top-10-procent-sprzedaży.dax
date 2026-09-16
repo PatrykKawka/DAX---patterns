@@ -1,35 +1,32 @@
-Czy klient jest w top10% sprzedazy? = 
+Czy klient jest w top10% sprzedazy? =
 /*
 SCENARIUSZ:
-    Sprawdza, czy klient widoczny w danym wierszu wizualizacji należy do TOP 10% najlepiej sprzedających się produktów w aktualnym kontekście filtrowania.
+    Sprawdza, czy klient widoczny w danym wierszu wizualizacji należy do TOP 10% najlepiej kupujących wg [Total Sales].
 
 WYMAGANIA WSTĘPNE:
-    1. Tabela dim_Klienci zawiera unikalne identyfikatory produktów (np. id_klienta).
+    1. Tabela dim_Klienci zawiera unikalny identyfikator klienta (customerkey).
     2. W modelu istnieje miara bazowa [Total Sales].
 
 WYDAJNOŚĆ:
-    - Obliczenie liczby klientów i wyznaczenie tabeli TOPN następuje jednorazowo per kontekst.
-    - ROUNDUP zabezpiecza prawidłowe zaokrąglenie progu procentowego w górę.
+    - Liczba klientów i tabela TOPN są wyznaczane jednorazowo per kontekst filtru.
+    - ROUNDUP zabezpiecza prawidłowe zaokrąglenie progu 10% w górę (np. 10% ze 105 klientów = 11, nie 10).
 */
 
 IF (
     NOT ISINSCOPE ( dim_Klienci[customerkey] ),
     BLANK (),
-    VAR LiczbaWszystkichProduktow = 
-        CALCULATE ( 
-            COUNTROWS ( dim_Klienci ), 
-            ALLSELECTED ( dim_Klienci ) 
-        )
-    VAR LiczbaDocelowaProduktow = 
-        ROUNDUP ( LiczbaWszystkichProduktow * 0.10, 0 )
-    VAR TabelaTop10PercentProduktow = 
+    VAR LiczbaWszystkichKlientow =
+        COUNTROWS ( ALLSELECTED ( dim_Klienci[customerkey] ) )
+    VAR LiczbaDocelowaKlientow =
+        ROUNDUP ( LiczbaWszystkichKlientow * 0.10, 0 )
+    VAR TabelaTop10PercentKlientow =
         TOPN (
-            LiczbaDocelowaProduktow,
+            LiczbaDocelowaKlientow,
             ALLSELECTED ( dim_Klienci[customerkey] ),
             [Total Sales],
             DESC
         )
-    VAR BiezacyProdukt = SELECTEDVALUE ( dim_Klienci[customerkey] )
+    VAR BiezacyKlient = SELECTEDVALUE ( dim_Klienci[customerkey] )
     RETURN
-        IF ( BiezacyProdukt IN TabelaTop10PercentProduktow, "Tak", "Nie" )
+        IF ( BiezacyKlient IN TabelaTop10PercentKlientow, "Tak", "Nie" )
 )
