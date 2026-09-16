@@ -1,0 +1,36 @@
+Czy klient jest w top10% sprzedazy? = 
+/*
+SCENARIUSZ:
+    Sprawdza, czy klient widoczny w danym wierszu wizualizacji należy do TOP 10% najlepiej sprzedających się produktów w aktualnym kontekście filtrowania.
+
+WYMAGANIA WSTĘPNE:
+    1. Tabela dim_Klienci zawiera unikalne identyfikatory produktów (np. id_klienta).
+    2. W modelu istnieje miara bazowa [Total Sales].
+
+WYDAJNOŚĆ:
+    - Obliczenie liczby klientów i wyznaczenie tabeli TOPN następuje jednorazowo per kontekst.
+    - ROUNDUP zabezpiecza prawidłowe zaokrąglenie progu procentowego w górę.
+*/
+
+// 1. Zabezpieczenie przed wierszem podsumowania (Total)
+IF (
+    NOT ISINSCOPE ( dim_Klienci[customerkey] ),
+    BLANK (),
+    VAR LiczbaWszystkichProduktow = 
+        CALCULATE ( 
+            COUNTROWS ( dim_Klienci ), 
+            ALLSELECTED ( dim_Klienci ) 
+        )
+    VAR LiczbaDocelowaProduktow = 
+        ROUNDUP ( LiczbaWszystkichProduktow * 0.10, 0 )
+    VAR TabelaTop10PercentProduktow = 
+        TOPN (
+            LiczbaDocelowaProduktow,
+            ALLSELECTED ( dim_Klienci[customerkey] ),
+            [Total Sales],
+            DESC
+        )
+    VAR BiezacyProdukt = SELECTEDVALUE ( dim_Klienci[customerkey] )
+    RETURN
+        IF ( BiezacyProdukt IN TabelaTop10PercentProduktow, "Tak", "Nie" )
+)
