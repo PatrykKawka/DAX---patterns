@@ -1,0 +1,109 @@
+/*
+========================================================================================
+1. SKRYPT TABELI ROZŁĄCZNEJ (Wklej jako: Modelowanie -> Nowa Tabela)
+========================================================================================
+*/
+dim_Klienci_Wizualizacja = 
+VAR RzeczywisciKlienci = 
+    SELECTCOLUMNS (
+        VALUES ( dim_Klienci[nazwisko] ),
+        "Klient", dim_Klienci[nazwisko],
+        "SortOrder", 1
+    )
+VAR PozycjaInne = 
+    DATATABLE (
+        "Klient", STRING,
+        "SortOrder", INTEGER,
+        {
+            { "Inne / Pozostali", 99999 }
+        }
+    )
+RETURN
+    UNION ( RzeczywisciKlienci, PozycjaInne )
+
+
+/*
+========================================================================================
+2. SKRYPT MIARY GŁÓWNEJ (Wklej jako: Nowa Miara w tabeli faktów)
+========================================================================================
+*/
+[Sales Top N with Others] = 
+// Ustawienie liczby wyszczególnionych liderów (można zastąpić funkcją SELECTEDVALUE z parametru)
+VAR TopNValue = 5
+
+// A. Pobranie nazwy z bieżącego wiersza tabeli rozłącznej
+VAR CurrentCustomerInVis = SELECTEDVALUE ( dim_Klienci_Wizualizacja[Klient] )
+
+// B. Obliczenie łącznej sprzedaży całkowitej dla pełnego wymiaru klientów
+VAR TotalSalesAll = 
+    CALCULATE (
+        [Total Sales],
+        ALL ( dim_Klienci )
+    )
+
+// C. Wyznaczenie tabeli TOP N liderów w pamięci RAM
+VAR TopCustomersTable = 
+    TOPN (
+        TopNValue,
+        ALL ( dim_Klienci[nazwisko] ),
+        [Total Sales],
+        DESC
+    )
+
+// D. Obliczenie skumulowanej sprzedaży dla samej grupy TOP N
+VAR TopSalesTotal = 
+    CALCULATE (
+        [Total Sales],
+        KEEPFILTERS ( TopCustomersTable )
+    )
+
+// E. Obliczenie wartości rezydualnej dla pozycji "Inne / Pozostali"
+VAR OthersSales = TotalSalesAll - TopSalesTotal
+
+// F. Pobranie wartości sprzedaży dla pojedynczego klienta przy użyciu wirtualnej relacji TREATAS
+VAR CurrentCustomerSales = 
+    CALCULATE (
+        [Total Sales],
+        TREATAS ( { CurrentCustomerInVis }, dim_Klienci[nazwisko] )
+    )
+
+RETURN
+    SWITCH (
+        TRUE (),
+        // Jeśli klient z wiersza należy do TOP N -> zwróć jego jednostkową sprzedaż
+        CurrentCustomerInVis IN TopCustomersTable, 
+            CurrentCustomerSales,
+            
+        // Jeśli wiersz wizualizacji to "Inne / Pozostali" -> zwróć obliczoną resztę
+        CurrentCustomerInVis = "Inne / Pozostali", 
+            OthersSales,
+            
+        // Wszyscy pozostali klienci spoza TOP N zostają ukryci (BLANK)
+        BLANK ()
+    )
+
+
+/*
+========================================================================================
+                                    UWAGI TECHNICZNE
+========================================================================================
+1. SORTOWANIE TABELI ROZŁĄCZNEJ:
+   Po utworzeniu tabeli 'dim_Klienci_Wizualizacja' w Power BI koniecznie wybierz kolumnę 
+   [Klient], przejdź do: "Narzędzia kolumn" -> "Sortuj według kolumny" i wskaż [SortOrder].
+   Dzięki temu pozycja "Inne / Pozostali" (ze statyczną wartością 99999) zawsze trafi 
+   na sam dół wykresów lub tabel, niezależnie od jej wartości kwotowej.
+
+2. BRAK RELACJI W MODELI:
+   Tabela 'dim_Klienci_Wizualizacja' NIE MOŻE posiadać relacji z tabelą 'fact_Sprzedaz' 
+   ani z 'dim_Klienci'. Przenoszenie kontekstu odbywa się bezpiecznie wewnątrz miary 
+   za pomocą funkcji `TREATAS`.
+
+3. EFEKTYWNOŚĆ ZMIENNYCH (VERTIPAQ):
+   Użycie zmiennych `VAR` gwarantuje, że zapytanie `TOPN` i wyliczenie całkowitej sumy 
+   wykonują się tylko raz na poziomie ewaluacji, co daje najwyższą wydajność.
+
+4. KONFIGURACJA WIZUALIZACJI:
+   Na osi X/Y wykresu używaj WYŁĄCZNIE kolumny `dim_Klienci_Wizualizacja[Klient]`. 
+   Użycie kolumny z oryginalnego wymiaru `dim_Klienci[nazwisko]` usunie wiersz "Inne".
+========================================================================================
+*/
