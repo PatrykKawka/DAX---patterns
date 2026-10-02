@@ -4,10 +4,11 @@ Użytkownik wybiera miesiąc na slicerze, a macierz sortuje wiersze według wart
 ```DAX
 dim_kalendarz_sort =
 VALUES ( 'dim kalendarz'[rok/mc] )
+```
 
 ### 2. Dodajemy kolumnę z nowo utworzonej tabeli do slicera - najlepiej w formie listy rozwijalnej, włączamy wybór jednokrotny
 
-### 3. Dodajemy do naszej wizualizzacji macierzy miarę
+### 3. Dodajemy do naszej wizualizacji macierzy miarę
 ```DAX
 Sprzedaż (z sortowaniem) =
 VAR _mc_sortowanie =
@@ -25,8 +26,10 @@ RETURN
             )
         )
     )
+```
 
-### 4. Ustawiamy na macierzy sortowanie po kolumnie sumy - ukrywamy kolumnę z sumą bo pokazuje ona teraz tylko i wyłacznie wartość dla wybranego miesiąca co nie jest prawdą.
+### 4. Ustawiamy na macierzy sortowanie po kolumnie sumy - ukrywamy kolumnę z sumą bo pokazuje ona teraz tylko i wyłącznie wartość dla wybranego miesiąca co nie jest prawdą.
+
 ### 5. Możemy wykorzystać formatowanie warunkowe, aby pokolorować kolumnę, po której aktualnie sortujemy.
 ```DAX
 Sprzedaż (z sortowaniem) format =
@@ -40,3 +43,4 @@ RETURN
         1,
         BLANK () // w argumencie można podać od razu kolor zamiast "1"
     )
+```
