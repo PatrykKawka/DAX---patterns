@@ -40,7 +40,7 @@ VAR _mc_sortowanie =
 RETURN
     IF (
         NOT ISBLANK ( _mc_w_kolumnie ) && _mc_w_kolumnie = _mc_sortowanie,
-        1,
-        BLANK () // w argumencie można podać od razu kolor zamiast "1"
+        1, // w argumencie można podać od razu kolor zamiast "1"
+        BLANK () 
     )
 ```
